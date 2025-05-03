@@ -120,11 +120,11 @@ impl App {
                     game.move_cursor(Direction::Right);
                 }
             }
-            KeyCode::Char(' ') => {
-                if let Some(game) = &mut self.game {
-                    game.toggle_light();
-                }
-            }
+            // KeyCode::Char(' ') => {
+            //     if let Some(game) = &mut self.game {
+            //         game.toggle_light();
+            //     }
+            // }
             _ => {}
         }
     }

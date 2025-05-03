@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-//#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PuzzleMetadata {
     pub puzzle_type: String,
     pub author: String,
@@ -12,14 +12,14 @@ pub struct PuzzleMetadata {
     pub size: PuzzleSize,
 }
 
-//#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PuzzleSize {
     pub cols: usize,
     pub rows: usize,
     pub unit: u32,
 }
 
-//#[derive(Debug)]
+#[derive(Debug)]
 pub struct Puzzle {
     pub id: u32,
     pub metadata: PuzzleMetadata,
@@ -27,6 +27,7 @@ pub struct Puzzle {
     pub solution: Vec<Vec<String>>,
 }
 
+#[derive(PartialEq)]
 pub enum GameState {
     Ready,
     Playing,
@@ -34,18 +35,26 @@ pub enum GameState {
     GameOver,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 pub enum CellType {
     Wall,
     Target(u8),
     Empty,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 pub enum LightState {
     IsWall,
     Light(u8),
     Dark,
 }
+impl LightState {
+    pub fn light(value: u8) -> Self {
+        LightState::Light(value)
+    }
+}
 
+#[derive(PartialEq, Clone, Copy)]
 pub enum PlayerObject {
     IsWall,
     Lightbulb,
@@ -134,7 +143,7 @@ impl Game {
                     match cell.as_str() {
                         "x" => {
                             self.board[i][j] = CellType::Wall;
-                            self.light_state[i][j] = LightState::ISWall;
+                            self.light_state[i][j] = LightState::IsWall;
                             self.player_objects[i][j] = PlayerObject::None;
                         }
                         "0" => {
@@ -171,7 +180,7 @@ impl Game {
         }
     }
 
-    fn start(&mut self) {
+    pub fn start(&mut self) {
         self.state = GameState::Playing;
     }
 
@@ -187,13 +196,13 @@ impl Game {
         // update every light state
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
-                update_light_state_cross(&mut self.light_state, i, j);
+                self.update_light_state_cross(i, j);
             }
         }
 
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
-                update_light_state(&mut self.light_state, i, j);
+                self.light_state[i][j] = LightState::light(0);
             }
         }
     }
@@ -203,7 +212,7 @@ impl Game {
 
     fn update_light_state_cross(&mut self, row: usize, col: usize) {
         //if self is a light bulb
-        if self.light_state[row][col] != PlayerObject::IsLightBulb {
+        if self.player_objects[row][col] != PlayerObject::Lightbulb {
             return;
         }
 
@@ -218,52 +227,53 @@ impl Game {
         // Update the light state at the current position
         //update up direction
         for i in (0..row).rev() {
-            if self.light_state[i][col] == PlayerObject::IsWall {
+            if self.player_objects[i][col] == PlayerObject::IsWall {
                 break;
             }
-            self.light_state[i][col] = LightState::light(self.light_state[i][col].value() + 1);
+            self.light_state[i][col] = match self.light_state[i][col] {
+                LightState::Light(n) => LightState::Light(n + 1),
+                LightState::Dark => LightState::Light(1),
+                LightState::IsWall => LightState::IsWall,
+            };
         }
         //update down direction
         for i in row + 1..rows {
-            if self.light_state[i][col] == PlayerObject::IsWall {
+            if self.player_objects[i][col] == PlayerObject::IsWall {
                 break;
             }
-            self.light_state[i][col] = LightState::light(self.light_state[i][col].value() + 1);
+            self.light_state[i][col] = match self.light_state[i][col] {
+                LightState::Light(n) => LightState::Light(n + 1),
+                LightState::Dark => LightState::Light(1),
+                LightState::IsWall => LightState::IsWall,
+            };
         }
         //update left direction
         for j in (0..col).rev() {
-            if self.light_state[row][j] == PlayerObject::IsWall {
+            if self.player_objects[row][j] == PlayerObject::IsWall {
                 break;
             }
-            self.light_state[row][j] = LightState::light(self.light_state[row][j].value() + 1);
+            self.light_state[row][j] = match self.light_state[row][j] {
+                LightState::Light(n) => LightState::Light(n + 1),
+                LightState::Dark => LightState::Light(1),
+                LightState::IsWall => LightState::IsWall,
+            };
         }
         //update right direction
         for j in col + 1..cols {
-            if self.light_state[row][j] == PlayerObject::IsWall {
+            if self.player_objects[row][j] == PlayerObject::IsWall {
                 break;
             }
-            self.light_state[row][j] = LightState::light(self.light_state[row][j].value() + 1);
+            self.light_state[row][j] = match self.light_state[row][j] {
+                LightState::Light(n) => LightState::Light(n + 1),
+                LightState::Dark => LightState::Light(1),
+                LightState::IsWall => LightState::IsWall,
+            };
         }
         //update self
         self.light_state[row][col] = LightState::light(4);
     }
 
-    fn update_light_state(&mut self) {
-        //for every light blub ,  fn move_cursor(&mut self, direction: Direction) {
-        if let Some(puzzle) = &self.puzzle {
-            let rows = puzzle.metadata.size.rows;
-            let cols = puzzle.metadata.size.cols;
-            let (row, col) = self.cursor_position;
-
-            self.cursor_position = match direction {
-                Direction::Up if row > 0 => (row - 1, col),
-                Direction::Down if row < rows - 1 => (row + 1, col),
-                Direction::Left if col > 0 => (row, col - 1),
-                Direction::Right if col < cols - 1 => (row, col + 1),
-                _ => (row, col),
-            };
-        }
-    }
+    pub fn move_cursor(&mut self, direction: Direction) {}
 
     pub fn player_operation(&mut self, operation: PlayerOperation) {
         if let Some(puzzle) = &self.puzzle {

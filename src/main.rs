@@ -3,6 +3,7 @@ use ratatui::DefaultTerminal;
 use std::io;
 
 mod app;
+mod game;
 mod ui;
 use app::App;
 use ui::ui;
