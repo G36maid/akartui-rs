@@ -11,6 +11,7 @@ pub enum CurrentScreen {
     Settings,
     Help,
     Exiting,
+    Win,
 }
 
 //#[derive(Debug)]
@@ -45,6 +46,7 @@ impl App {
             CurrentScreen::Settings => self.handle_settings_events(key),
             CurrentScreen::Help => self.handle_help_events(key),
             CurrentScreen::Exiting => self.handle_exiting_events(key),
+            CurrentScreen::Win => self.handle_win_events(key),
         }
     }
 
@@ -98,6 +100,14 @@ impl App {
         Ok(())
     }
 
+    fn check_gameover(&mut self) {
+        if let Some(game) = &self.game {
+            if game.state == crate::game::GameState::GameOver {
+                self.current_screen = CurrentScreen::Win;
+            }
+        }
+    }
+
     // Add other event handlers as needed
     fn handle_game_events(&mut self, key: KeyEvent) {
         match key.code {
@@ -105,7 +115,6 @@ impl App {
                 if let Some(game) = &mut self.game {
                     game.quit();
                 }
-
                 self.current_screen = CurrentScreen::Menu;
             }
             KeyCode::Up => {
@@ -146,6 +155,7 @@ impl App {
             }
             _ => {}
         }
+        self.check_gameover();
     }
 
     fn handle_archive_events(&mut self, key: KeyEvent) {
@@ -187,6 +197,13 @@ impl App {
         match key.code {
             KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
             KeyCode::Enter => self.exit = true,
+            _ => {}
+        }
+    }
+
+    fn handle_win_events(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
             _ => {}
         }
     }

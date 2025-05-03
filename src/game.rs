@@ -1,4 +1,4 @@
-use ratatui::widgets::{List, ListItem, ListState};
+//use ratatui::widgets::{List, ListItem, ListState};
 
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -94,6 +94,7 @@ pub struct Game {
     pub light_state: Vec<Vec<LightState>>,
     pub player_objects: Vec<Vec<PlayerObject>>,
     pub display: Vec<Vec<CellDisplay>>,
+    pub target_remain: Vec<Vec<Option<i8>>>,
     pub cursor_position: (usize, usize),
     //pub player_position_state: Vec<ListState>,
 }
@@ -107,6 +108,7 @@ impl Game {
             light_state: Vec::new(),
             player_objects: Vec::new(),
             display: Vec::new(),
+            target_remain: Vec::new(),
             cursor_position: (0, 0),
             //player_position_state: Vec::new(),
         }
@@ -198,6 +200,19 @@ impl Game {
                     }
                 }
             }
+            self.target_remain = vec![vec![None; cols]; rows];
+            for (i, row) in puzzle.problem.iter().enumerate() {
+                for (j, cell) in row.iter().enumerate() {
+                    match cell.as_str() {
+                        "0" => self.target_remain[i][j] = Some(0),
+                        "1" => self.target_remain[i][j] = Some(1),
+                        "2" => self.target_remain[i][j] = Some(2),
+                        "3" => self.target_remain[i][j] = Some(3),
+                        "4" => self.target_remain[i][j] = Some(4),
+                        _ => {}
+                    }
+                }
+            }
         }
     }
 
@@ -206,11 +221,36 @@ impl Game {
         //panic!()
     }
     pub fn quit(&mut self) {
-        self.state = GameState::GameOver;
+        //self.state = GameState::GameOver;
+    }
+
+    pub fn check_win(&self) -> bool {
+        for i in 0..self.board.len() {
+            for j in 0..self.board[0].len() {
+                match self.board[i][j] {
+                    CellType::Empty => {
+                        if self.light_state[i][j] == LightState::Dark {
+                            return false;
+                        }
+                    }
+                    CellType::Target(_) | CellType::Wall => {}
+                }
+            }
+        }
+        for i in 0..self.board.len() {
+            for j in 0..self.board[0].len() {
+                if let Some(remain) = self.target_remain[i][j] {
+                    if remain != 0 {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
     }
 
     pub fn update(&mut self) {
-        //change every light state to light(0) if !(IsWall)
+        // 1. clear all non-wall cells
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
                 if self.light_state[i][j] != LightState::IsWall {
@@ -218,17 +258,46 @@ impl Game {
                 }
             }
         }
-        // update every light state
+        // 2. propagate
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
                 self.update_light_state_cross(i, j);
             }
         }
-
+        // 3. set light 0 into Dark
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
-                self.light_state[i][j] = LightState::light(0);
+                if self.light_state[i][j] == LightState::light(0) {
+                    self.light_state[i][j] = LightState::Dark;
+                }
             }
+        }
+        //4. target calculate
+        for i in 0..self.board.len() {
+            for j in 0..self.board[0].len() {
+                if let CellType::Target(orig) = self.board[i][j] {
+                    let mut count = 0;
+                    for (di, dj) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                        let ni = i as isize + di;
+                        let nj = j as isize + dj;
+                        if ni >= 0
+                            && ni < self.board.len() as isize
+                            && nj >= 0
+                            && nj < self.board[0].len() as isize
+                        {
+                            let (ni, nj) = (ni as usize, nj as usize);
+                            if self.player_objects[ni][nj] == PlayerObject::Lightbulb {
+                                count += 1;
+                            }
+                        }
+                    }
+                    let remain = (orig as i8) - count;
+                    self.target_remain[i][j] = Some(remain);
+                }
+            }
+        }
+        if self.check_win() {
+            self.state = GameState::GameOver;
         }
     }
 
@@ -250,7 +319,7 @@ impl Game {
         }
 
         // Update the light state at the current position
-        //update up direction
+        // update up direction
         for i in (0..row).rev() {
             if self.player_objects[i][col] == PlayerObject::IsWall {
                 break;
@@ -304,8 +373,10 @@ impl Game {
             return CellDisplay::Wall;
         } else
         // Target numbers next
-        if let CellType::Target(n) = self.board[row][col] {
-            return CellDisplay::Target(n);
+        if let CellType::Target(_orig) = self.board[row][col] {
+            if let Some(remain) = self.target_remain[row][col] {
+                return CellDisplay::Target(remain as u8);
+            }
         } else
         // Light bulbs placed by player
         if self.player_objects[row][col] == PlayerObject::Lightbulb {
@@ -364,41 +435,55 @@ impl Game {
 
         match operation {
             PlayerOperation::AddLightbulb => {
-                if self.light_state[row][col] != LightState::Dark {
-                    return;
-                }
-
                 match self.player_objects[row][col] {
+                    PlayerObject::Lightbulb => {
+                        //if empty
+                        self.player_objects[row][col] = PlayerObject::Empty;
+                    }
                     PlayerObject::Empty => {
+                        //only allow in dark
+                        if self.light_state[row][col] != LightState::Dark {
+                            return;
+                        }
+                        //check if target is already satisfied
+                        for (di, dj) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                            let ni = row as isize + di;
+                            let nj = col as isize + dj;
+                            if ni >= 0
+                                && ni < self.board.len() as isize
+                                && nj >= 0
+                                && nj < self.board[0].len() as isize
+                            {
+                                let (ni, nj) = (ni as usize, nj as usize);
+                                if let Some(remain) = self.target_remain[ni][nj] {
+                                    if remain <= 0 {
+                                        return;
+                                    }
+                                }
+                            }
+                        }
                         self.player_objects[row][col] = PlayerObject::Lightbulb;
                     }
-                    PlayerObject::Lightbulb => {
-                        self.player_objects[row][col] = PlayerObject::Empty;
-                    }
                     PlayerObject::Flag => {
                         self.player_objects[row][col] = PlayerObject::Empty;
                     }
                     _ => {}
                 }
             }
-            PlayerOperation::AddFlag => {
-                if self.light_state[row][col] != LightState::Dark {
-                    return;
-                }
-
-                match self.player_objects[row][col] {
-                    PlayerObject::Empty => {
+            PlayerOperation::AddFlag => match self.player_objects[row][col] {
+                PlayerObject::Empty => {
+                    if self.light_state[row][col] == LightState::Dark {
                         self.player_objects[row][col] = PlayerObject::Flag;
                     }
-                    PlayerObject::Flag => {
-                        self.player_objects[row][col] = PlayerObject::Empty;
-                    }
-                    PlayerObject::Lightbulb => {
-                        self.player_objects[row][col] = PlayerObject::Empty;
-                    }
-                    _ => {}
                 }
-            }
+                PlayerObject::Flag => {
+                    self.player_objects[row][col] = PlayerObject::Empty;
+                }
+                PlayerObject::Lightbulb => {
+                    self.player_objects[row][col] = PlayerObject::Empty;
+                }
+                _ => {}
+            },
         }
     }
 }

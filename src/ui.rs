@@ -46,6 +46,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         CurrentScreen::Settings => draw_settings_content(frame, app, middle[1]),
         CurrentScreen::Help => draw_help_content(frame, app, middle[1]),
         CurrentScreen::Exiting => draw_exiting_content(frame, app, middle[1]),
+        CurrentScreen::Win => draw_win(frame, app, middle[1]),
     }
 }
 
@@ -96,6 +97,7 @@ fn draw_helper(frame: &mut Frame, app: &App, area: Rect) {
         CurrentScreen::Settings => "設定畫面  Q:返回",
         CurrentScreen::Help => "Q:返回",
         CurrentScreen::Exiting => "Enter:確認離開  Q:取消",
+        CurrentScreen::Win => "Q:返回",
     };
     let para = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Helper"));
     frame.render_widget(para, area);
@@ -173,15 +175,25 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
             for (j, cell_area) in col_areas.iter().enumerate() {
                 let (symbol, style): (String, Style) = match display[i][j] {
                     CellDisplay::Wall => ("██".to_string(), Style::default().fg(Color::DarkGray)),
-                    CellDisplay::Target(n) => {
-                        (format!("{}", n), Style::default().fg(Color::Yellow))
-                    }
+                    CellDisplay::Target(n) => (format!("{}", n), Style::default().fg(Color::White)),
                     CellDisplay::LightBulb => {
-                        ("💡".to_string(), Style::default().fg(Color::Yellow))
+                        ("💡".to_string(), Style::default().fg(Color::LightYellow))
                     }
-                    CellDisplay::Light(_) => ("·".to_string(), Style::default().fg(Color::White)),
-                    CellDisplay::Flag => ("🚩".to_string(), Style::default().fg(Color::Red)),
-                    CellDisplay::Dark => (" ".to_string(), Style::default()),
+                    CellDisplay::Light(n) => match n {
+                        1 => ("·1".to_string(), Style::default().fg(Color::Yellow)),
+                        2 => ("▒2".to_string(), Style::default().fg(Color::Yellow)),
+                        3 => ("▓3".to_string(), Style::default().fg(Color::Yellow)),
+                        4 => (
+                            "█4".to_string(),
+                            Style::default().fg(Color::Yellow), //.add_modifier(Modifier::BOLD),
+                        ),
+                        _ => (
+                            " 0".to_string(),
+                            Style::default().fg(Color::Gray), //.add_modifier(Modifier::BOLD),
+                        ),
+                    },
+                    CellDisplay::Flag => ("P".to_string(), Style::default().fg(Color::Red)),
+                    CellDisplay::Dark => (" ".to_string(), Style::default().fg(Color::Black)),
                 };
 
                 // 高亮游標
@@ -220,6 +232,14 @@ fn draw_exiting_content(frame: &mut Frame, _app: &mut App, area: Rect) {
     let exiting_text = "Do you want to exit?\n\nPress Enter to exit\nPress Q to return to menu";
     let para = Paragraph::new(exiting_text)
         .block(Block::default().borders(Borders::ALL).title("Exiting"))
+        .wrap(Wrap { trim: true });
+    frame.render_widget(para, area);
+}
+
+fn draw_win(frame: &mut Frame, _app: &mut App, area: Rect) {
+    let text = "🎉 恭喜過關！\n\nPress Q to return to menu";
+    let para = Paragraph::new(text)
+        .block(Block::default().borders(Borders::ALL).title("You Win!"))
         .wrap(Wrap { trim: true });
     frame.render_widget(para, area);
 }

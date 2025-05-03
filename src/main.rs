@@ -1,5 +1,5 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use ratatui::DefaultTerminal;
+use crossterm::event::{self, Event};
+//use ratatui::DefaultTerminal;
 use std::io;
 
 mod app;
