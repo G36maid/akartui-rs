@@ -7,6 +7,7 @@ use ratatui::{
 };
 
 use crate::app::{App, CurrentScreen};
+use crate::game::Puzzle;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     match app.current_screen {
@@ -63,16 +64,60 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
 }
 
 fn draw_game(frame: &mut Frame, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Game info
-            Constraint::Min(1),    // Game board
-            Constraint::Length(3), // Controls
-        ])
-        .split(frame.size());
+    if let Some(game) = &app.game {
+        if let Some(puzzle) = &game.puzzle {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3), // Game info like metadata
+                    Constraint::Min(1),    // Game board (for the puzzle)
+                    Constraint::Length(3), // Controls hint
+                ])
+                .split(frame.size());
 
-    // Implement game UI
+            // Game info (top section)
+            let metadata = Paragraph::new("Game info")
+                .block(Block::default().borders(Borders::ALL).title("Game Info"));
+
+            frame.render_widget(metadata, chunks[0]);
+
+            todo!();
+            // // Puzzle board (middle section)
+            // let puzzle_width = puzzle.width();
+            // let puzzle_height = puzzle.height();
+
+            // let block_size = 3; // Each block is 3x3
+
+            // // Calculate number of blocks that fit horizontally and vertically
+            // let horizontal_blocks = puzzle_width / block_size;
+            // let vertical_blocks = puzzle_height / block_size;
+
+            // // Create the blocks (each a 3x3 area)
+            // for row in 0..vertical_blocks {
+            //     for col in 0..horizontal_blocks {
+            //         let block_rect = Rect {
+            //             x: chunks[1].x + (col * block_size) as u16,
+            //             y: chunks[1].y + (row * block_size) as u16,
+            //             width: block_size,
+            //             height: block_size,
+            //         };
+
+            //         let block = Block::default()
+            //             .borders(Borders::ALL)
+            //             .style(Style::default().fg(Color::White));
+
+            //         frame.render_widget(block, block_rect);
+            //     }
+            // }
+
+            // Controls hint (bottom section)
+            let controls_hint =
+                Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
+                    .block(Block::default().borders(Borders::ALL).title("Controls"));
+
+            frame.render_widget(controls_hint, chunks[2]);
+        }
+    }
 }
 
 fn draw_archive(frame: &mut Frame, app: &mut App) {

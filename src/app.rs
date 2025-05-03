@@ -1,6 +1,6 @@
-use crossterm::event::{KeyCode, KeyEvent};
-
 use crate::game::{Direction, Game, PlayerOperation};
+use crossterm::event::{KeyCode, KeyEvent};
+use rand::Rng;
 
 #[derive(Debug)]
 pub enum CurrentScreen {
@@ -12,7 +12,7 @@ pub enum CurrentScreen {
     Exiting,
 }
 
-#[derive(Debug)]
+//#[derive(Debug)]
 pub struct App {
     pub current_screen: CurrentScreen,
     pub current_selection: CurrentScreen,
@@ -48,7 +48,12 @@ impl App {
     fn handle_menu_events(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') => self.exit = true,
-            KeyCode::Char('g') => self.current_screen = CurrentScreen::Game,
+            KeyCode::Char('g') => {
+                let puzzle_id = rand::thread_rng().gen_range(1..=750);
+                if let Err(e) = self.start_game(puzzle_id) {
+                    eprintln!("Failed to start game: {}", e);
+                }
+            }
             KeyCode::Char('a') => self.current_screen = CurrentScreen::Archive,
             KeyCode::Char('s') => self.current_screen = CurrentScreen::Settings,
             KeyCode::Char('h') => self.current_screen = CurrentScreen::Help,
@@ -120,11 +125,16 @@ impl App {
                     game.move_cursor(Direction::Right);
                 }
             }
-            // KeyCode::Char(' ') => {
-            //     if let Some(game) = &mut self.game {
-            //         game.toggle_light();
-            //     }
-            // }
+            KeyCode::Char(' ') => {
+                if let Some(game) = &mut self.game {
+                    game.player_operation(PlayerOperation::AddLightbulb);
+                }
+            }
+            KeyCode::Char('p') => {
+                if let Some(game) = &mut self.game {
+                    game.player_operation(PlayerOperation::AddFlag);
+                }
+            }
             _ => {}
         }
     }

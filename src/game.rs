@@ -59,7 +59,16 @@ pub enum PlayerObject {
     IsWall,
     Lightbulb,
     Flag,
-    None,
+    Empty,
+}
+
+pub enum CellDisplay {
+    Wall,
+    Target(u8),
+    LightBulb,
+    Light(u8),
+    Flag,
+    Dark,
 }
 
 pub enum PlayerOperation {
@@ -80,6 +89,7 @@ pub struct Game {
     pub board: Vec<Vec<CellType>>,
     pub light_state: Vec<Vec<LightState>>,
     pub player_objects: Vec<Vec<PlayerObject>>,
+    pub display: Vec<Vec<CellDisplay>>,
     pub cursor_position: (usize, usize),
 }
 
@@ -91,6 +101,7 @@ impl Game {
             board: Vec::new(),
             light_state: Vec::new(),
             player_objects: Vec::new(),
+            display: Vec::new(),
             cursor_position: (0, 0),
         }
     }
@@ -135,7 +146,7 @@ impl Game {
             // Initialize board with empty cells
             self.board = vec![vec![CellType::Empty; cols]; rows];
             self.light_state = vec![vec![LightState::Dark; cols]; rows];
-            self.player_objects = vec![vec![PlayerObject::None; cols]; rows];
+            self.player_objects = vec![vec![PlayerObject::Empty; cols]; rows];
 
             // Set up initial board state based on puzzle problem
             for (i, row) in puzzle.problem.iter().enumerate() {
@@ -144,32 +155,32 @@ impl Game {
                         "x" => {
                             self.board[i][j] = CellType::Wall;
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         "0" => {
                             self.board[i][j] = CellType::Target(0);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         "1" => {
                             self.board[i][j] = CellType::Target(1);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         "2" => {
                             self.board[i][j] = CellType::Target(2);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         "3" => {
                             self.board[i][j] = CellType::Target(3);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         "4" => {
                             self.board[i][j] = CellType::Target(4);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::None;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                         _ => {
                             self.board[i][j] = CellType::Empty;
@@ -273,7 +284,35 @@ impl Game {
         self.light_state[row][col] = LightState::light(4);
     }
 
-    pub fn move_cursor(&mut self, direction: Direction) {}
+    fn display_priority(&mut self, row: usize, col: usize) -> CellDisplay {
+        //// Wall has highest priority
+        if self.board[row][col] == CellType::Wall {
+            return CellDisplay::Wall;
+        } else
+        // Target numbers next
+        if let CellType::Target(n) = self.board[row][col] {
+            return CellDisplay::Target(n);
+        } else
+        // Light bulbs placed by player
+        if self.player_objects[row][col] == PlayerObject::Lightbulb {
+            return CellDisplay::LightBulb;
+        } else
+        // Light level from propagation
+        if let LightState::Light(n) = self.light_state[row][col] {
+            return CellDisplay::Light(n);
+        } else
+        // Flags placed by player
+        if self.player_objects[row][col] == PlayerObject::Flag {
+            return CellDisplay::Flag;
+        }
+
+        //Dark
+        CellDisplay::Dark
+    }
+
+    pub fn move_cursor(&mut self, direction: Direction) {
+        todo!()
+    }
 
     pub fn player_operation(&mut self, operation: PlayerOperation) {
         if let Some(puzzle) = &self.puzzle {
@@ -285,14 +324,16 @@ impl Game {
                         return;
                     }
 
-                    match self.PlayerObject[row][col] {
+                    match self.player_objects[row][col] {
                         PlayerObject::Empty => {
-                            self.PlayerObject[row][col] = PlayerObject::Lightbulb
+                            self.player_objects[row][col] = PlayerObject::Lightbulb;
                         }
                         PlayerObject::Lightbulb => {
-                            self.PlayerObject[row][col] = PlayerObject::Empty
+                            self.player_objects[row][col] = PlayerObject::Empty;
                         }
-                        PlayerObject::Flag => self.PlayerObject[row][col] = PlayerObject::Empty,
+                        PlayerObject::Flag => {
+                            self.player_objects[row][col] = PlayerObject::Empty;
+                        }
                         _ => {}
                     }
                 }
@@ -300,11 +341,16 @@ impl Game {
                     if self.light_state[row][col] != LightState::Dark {
                         return;
                     }
-                    match self.PlayerObject[row][col] {
-                        PlayerObject::Empty => self.PlayerObject[row][col] = PlayerObject::Flag,
-                        PlayerObject::Flag => self.PlayerObject[row][col] = PlayerObject::Empty,
+
+                    match self.player_objects[row][col] {
+                        PlayerObject::Empty => {
+                            self.player_objects[row][col] = PlayerObject::Flag;
+                        }
+                        PlayerObject::Flag => {
+                            self.player_objects[row][col] = PlayerObject::Empty;
+                        }
                         PlayerObject::Lightbulb => {
-                            self.PlayerObject[row][col] = PlayerObject::Empty
+                            self.player_objects[row][col] = PlayerObject::Empty;
                         }
                         _ => {}
                     }
