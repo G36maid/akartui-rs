@@ -1,5 +1,5 @@
-use crossterm::event::{self, Event};
-//use ratatui::DefaultTerminal;
+use ratatui::crossterm::event::{self, Event};
+
 use std::io;
 
 mod app;

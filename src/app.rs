@@ -1,5 +1,5 @@
 use crate::game::{Direction, Game, PlayerOperation};
-use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 use ratatui::widgets::ListState;
 
