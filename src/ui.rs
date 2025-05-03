@@ -2,12 +2,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListDirection, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
 
 use crate::app::{App, CurrentScreen};
-use crate::game::Puzzle;
+//use crate::game::Puzzle;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     match app.current_screen {
@@ -40,19 +40,17 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
 
     frame.render_widget(header, chunks[0]);
 
-    // Menu items in the middle
-    let menu_items = vec![
-        ListItem::new("G = new Game"),
-        ListItem::new("A = Archive"),
-        ListItem::new("S = Settings"),
-        ListItem::new("H = Help"),
-        ListItem::new("E = Exit"),
-    ];
+    // let menus = Vec<ListItem> = app.menu_list.iter().map(|item| {
+    //     ListItem::new(Paragraph::new(item).style(Style::default().fg(Color::White)))
+    // }).collect();
 
-    let menu = List::new(menu_items)
+    let menu = List::new(app.menu_list)
         .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow));
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .highlight_symbol(">>")
+        .repeat_highlight_symbol(true)
+        .direction(ListDirection::BottomToTop);
 
     frame.render_widget(menu, chunks[1]);
 
@@ -82,33 +80,6 @@ fn draw_game(frame: &mut Frame, app: &mut App) {
             frame.render_widget(metadata, chunks[0]);
 
             todo!();
-            // // Puzzle board (middle section)
-            // let puzzle_width = puzzle.width();
-            // let puzzle_height = puzzle.height();
-
-            // let block_size = 3; // Each block is 3x3
-
-            // // Calculate number of blocks that fit horizontally and vertically
-            // let horizontal_blocks = puzzle_width / block_size;
-            // let vertical_blocks = puzzle_height / block_size;
-
-            // // Create the blocks (each a 3x3 area)
-            // for row in 0..vertical_blocks {
-            //     for col in 0..horizontal_blocks {
-            //         let block_rect = Rect {
-            //             x: chunks[1].x + (col * block_size) as u16,
-            //             y: chunks[1].y + (row * block_size) as u16,
-            //             width: block_size,
-            //             height: block_size,
-            //         };
-
-            //         let block = Block::default()
-            //             .borders(Borders::ALL)
-            //             .style(Style::default().fg(Color::White));
-
-            //         frame.render_widget(block, block_rect);
-            //     }
-            // }
 
             // Controls hint (bottom section)
             let controls_hint =

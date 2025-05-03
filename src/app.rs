@@ -1,6 +1,7 @@
 use crate::game::{Direction, Game, PlayerOperation};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
+use ratatui::widgets::ListState;
 
 #[derive(Debug)]
 pub enum CurrentScreen {
@@ -15,18 +16,32 @@ pub enum CurrentScreen {
 //#[derive(Debug)]
 pub struct App {
     pub current_screen: CurrentScreen,
-    pub current_selection: CurrentScreen,
+    pub menu_list: Menulist,
     pub game: Option<Game>,
     exit: bool,
+}
+
+pub struct Menulist {
+    entries: Vec<String>,
+    state: ListState,
 }
 
 impl App {
     pub fn new() -> App {
         App {
             current_screen: CurrentScreen::Menu,
-            current_selection: CurrentScreen::Menu,
             game: None,
             exit: false,
+            menu_list: Menulist {
+                entries: vec![
+                    "New Game".to_string(),
+                    "Archive".to_string(),
+                    "Settings".to_string(),
+                    "Help".to_string(),
+                    "Exit".to_string(),
+                ],
+                state: ListState::default(),
+            },
         }
     }
 
@@ -59,37 +74,32 @@ impl App {
             KeyCode::Char('h') => self.current_screen = CurrentScreen::Help,
             KeyCode::Char('e') => self.current_screen = CurrentScreen::Exiting,
             KeyCode::Up => {
-                self.current_selection = match self.current_selection {
-                    CurrentScreen::Game => CurrentScreen::Exiting,
-                    CurrentScreen::Archive => CurrentScreen::Game,
-                    CurrentScreen::Settings => CurrentScreen::Archive,
-                    CurrentScreen::Help => CurrentScreen::Settings,
-                    CurrentScreen::Exiting => CurrentScreen::Help,
-                    _ => CurrentScreen::Menu,
-                }
+                self.menu_select_prev();
             }
             KeyCode::Down => {
-                self.current_selection = match self.current_selection {
-                    CurrentScreen::Game => CurrentScreen::Archive,
-                    CurrentScreen::Archive => CurrentScreen::Settings,
-                    CurrentScreen::Settings => CurrentScreen::Help,
-                    CurrentScreen::Help => CurrentScreen::Exiting,
-                    CurrentScreen::Exiting => CurrentScreen::Game,
-                    _ => CurrentScreen::Menu,
-                }
+                self.menu_select_next();
             }
-            KeyCode::Enter => {
-                self.current_screen = match self.current_selection {
-                    CurrentScreen::Game => CurrentScreen::Game,
-                    CurrentScreen::Archive => CurrentScreen::Archive,
-                    CurrentScreen::Settings => CurrentScreen::Settings,
-                    CurrentScreen::Help => CurrentScreen::Help,
-                    CurrentScreen::Exiting => CurrentScreen::Exiting,
-                    _ => CurrentScreen::Menu,
-                }
-            }
+            // KeyCode::Enter => {
+            //     if let Some(selected) = self.menu_list.selected() {
+            //         self.current_screen = match selected {
+            //             0 => CurrentScreen::Game,
+            //             1 => CurrentScreen::Archive,
+            //             2 => CurrentScreen::Settings,
+            //             3 => CurrentScreen::Help,
+            //             4 => CurrentScreen::Exiting,
+            //             _ => CurrentScreen::Menu,
+            //         };
+            //     }
+            // }
             _ => {}
         }
+    }
+
+    fn menu_select_next(&mut self) {
+        self.menu_list.state.select_next();
+    }
+    fn menu_select_prev(&mut self) {
+        self.menu_list.state.select_previous();
     }
 
     pub fn start_game(&mut self, puzzle_id: u32) -> Result<(), Box<dyn std::error::Error>> {
