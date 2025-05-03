@@ -1,5 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
+use crate::game::{Direction, Game, PlayerOperation};
+
 #[derive(Debug)]
 pub enum CurrentScreen {
     Menu,
@@ -14,6 +16,7 @@ pub enum CurrentScreen {
 pub struct App {
     pub current_screen: CurrentScreen,
     pub current_selection: CurrentScreen,
+    pub game: Option<Game>,
     exit: bool,
 }
 
@@ -22,6 +25,7 @@ impl App {
         App {
             current_screen: CurrentScreen::Menu,
             current_selection: CurrentScreen::Menu,
+            game: None,
             exit: false,
         }
     }
@@ -83,9 +87,46 @@ impl App {
         }
     }
 
+    pub fn start_game(&mut self, puzzle_id: u32) -> Result<(), Box<dyn std::error::Error>> {
+        let mut game = Game::new();
+        game.init_game(puzzle_id)?;
+        game.start();
+        self.game = Some(game);
+        self.current_screen = CurrentScreen::Game;
+        Ok(())
+    }
+
     // Add other event handlers as needed
     fn handle_game_events(&mut self, key: KeyEvent) {
-        // Handle game events
+        match key.code {
+            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            KeyCode::Up => {
+                if let Some(game) = &mut self.game {
+                    game.move_cursor(Direction::Up);
+                }
+            }
+            KeyCode::Down => {
+                if let Some(game) = &mut self.game {
+                    game.move_cursor(Direction::Down);
+                }
+            }
+            KeyCode::Left => {
+                if let Some(game) = &mut self.game {
+                    game.move_cursor(Direction::Left);
+                }
+            }
+            KeyCode::Right => {
+                if let Some(game) = &mut self.game {
+                    game.move_cursor(Direction::Right);
+                }
+            }
+            KeyCode::Char(' ') => {
+                if let Some(game) = &mut self.game {
+                    game.toggle_light();
+                }
+            }
+            _ => {}
+        }
     }
 
     fn handle_archive_events(&mut self, key: KeyEvent) {

@@ -1,66 +1,305 @@
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+
+//#[derive(Debug, Serialize, Deserialize)]
+pub struct PuzzleMetadata {
+    pub puzzle_type: String,
+    pub author: String,
+    pub solver: String,
+    pub source: String,
+    pub info: String,
+    pub size: PuzzleSize,
+}
+
+//#[derive(Debug, Serialize, Deserialize)]
+pub struct PuzzleSize {
+    pub cols: usize,
+    pub rows: usize,
+    pub unit: u32,
+}
+
+//#[derive(Debug)]
+pub struct Puzzle {
+    pub id: u32,
+    pub metadata: PuzzleMetadata,
+    pub problem: Vec<Vec<String>>,
+    pub solution: Vec<Vec<String>>,
+}
+
 pub enum GameState {
     Ready,
     Playing,
     Paused,
     GameOver,
 }
+
 pub enum CellType {
     Wall,
     Target(u8),
     Empty,
 }
 
-pub enum CellState {
+pub enum LightState {
     IsWall,
-    Light,
+    Light(u8),
     Dark,
 }
 
 pub enum PlayerObject {
     IsWall,
-    Light,
-    Dark,
+    Lightbulb,
+    Flag,
     None,
+}
+
+pub enum PlayerOperation {
+    AddLightbulb,
+    AddFlag,
+}
+
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 pub struct Game {
     pub state: GameState,
-    pub puzzle: Puzzle,
-    pub board: Vec<Vec<CellState>>,
-    pub cells_state: Vec<Vec<CellState>>,
+    pub puzzle: Option<Puzzle>,
+    pub board: Vec<Vec<CellType>>,
+    pub light_state: Vec<Vec<LightState>>,
     pub player_objects: Vec<Vec<PlayerObject>>,
-}
-
-pub struct Puzzle {
-    pub id: u32,
-    pub title: String,
-    pub description: String,
+    pub cursor_position: (usize, usize),
 }
 
 impl Game {
     pub fn new() -> Game {
         Game {
             state: GameState::Ready,
+            puzzle: None,
+            board: Vec::new(),
+            light_state: Vec::new(),
+            player_objects: Vec::new(),
+            cursor_position: (0, 0),
         }
     }
 
-    fn init_game(&mut self) {
-        // Initialize game state
+    pub fn init_game(&mut self, puzzle_id: u32) -> Result<(), Box<dyn std::error::Error>> {
+        // Calculate which archive folder to look in
+        let folder = ((puzzle_id - 1) / 100 + 1).to_string();
+        let file_path = format!("archive/{}/{:03}.json", folder, puzzle_id);
+
+        // Read puzzle file
+        let puzzle_data = fs::read_to_string(Path::new(&file_path))?;
+
+        // Parse JSON data
+        let puzzle_json: serde_json::Value = serde_json::from_str(&puzzle_data)?;
+
+        // Extract metadata
+        let metadata: PuzzleMetadata = serde_json::from_value(puzzle_json["metadata"].clone())?;
+
+        // Extract problem and solution
+        let problem: Vec<Vec<String>> = serde_json::from_value(puzzle_json["problem"].clone())?;
+        let solution: Vec<Vec<String>> = serde_json::from_value(puzzle_json["solution"].clone())?;
+
+        // Create puzzle
+        self.puzzle = Some(Puzzle {
+            id: puzzle_id,
+            metadata,
+            problem,
+            solution,
+        });
+
+        // Initialize board
+        self.init_board();
+
+        Ok(())
     }
 
-    fn start_game(&mut self) {
-        // Start game logic
+    fn init_board(&mut self) {
+        if let Some(puzzle) = &self.puzzle {
+            let rows = puzzle.metadata.size.rows;
+            let cols = puzzle.metadata.size.cols;
+
+            // Initialize board with empty cells
+            self.board = vec![vec![CellType::Empty; cols]; rows];
+            self.light_state = vec![vec![LightState::Dark; cols]; rows];
+            self.player_objects = vec![vec![PlayerObject::None; cols]; rows];
+
+            // Set up initial board state based on puzzle problem
+            for (i, row) in puzzle.problem.iter().enumerate() {
+                for (j, cell) in row.iter().enumerate() {
+                    match cell.as_str() {
+                        "x" => {
+                            self.board[i][j] = CellType::Wall;
+                            self.light_state[i][j] = LightState::ISWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        "0" => {
+                            self.board[i][j] = CellType::Target(0);
+                            self.light_state[i][j] = LightState::IsWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        "1" => {
+                            self.board[i][j] = CellType::Target(1);
+                            self.light_state[i][j] = LightState::IsWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        "2" => {
+                            self.board[i][j] = CellType::Target(2);
+                            self.light_state[i][j] = LightState::IsWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        "3" => {
+                            self.board[i][j] = CellType::Target(3);
+                            self.light_state[i][j] = LightState::IsWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        "4" => {
+                            self.board[i][j] = CellType::Target(4);
+                            self.light_state[i][j] = LightState::IsWall;
+                            self.player_objects[i][j] = PlayerObject::None;
+                        }
+                        _ => {
+                            self.board[i][j] = CellType::Empty;
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    fn update_game(&mut self) {
-        // Update game logic
+    fn start(&mut self) {
+        self.state = GameState::Playing;
     }
 
-    fn handle_input(&mut self) {
-        // Handle user input
+    fn update(&mut self) {
+        //change every light state to light(0) if !(IsWall)
+        for i in 0..self.light_state.len() {
+            for j in 0..self.light_state[i].len() {
+                if self.light_state[i][j] != LightState::IsWall {
+                    self.light_state[i][j] = LightState::light(0);
+                }
+            }
+        }
+        // update every light state
+        for i in 0..self.light_state.len() {
+            for j in 0..self.light_state[i].len() {
+                update_light_state_cross(&mut self.light_state, i, j);
+            }
+        }
+
+        for i in 0..self.light_state.len() {
+            for j in 0..self.light_state[i].len() {
+                update_light_state(&mut self.light_state, i, j);
+            }
+        }
     }
 
-    fn update_player_objects(&mut self) {
-        // Update player objects
+    //every light bulb will shoot cross direction light until it is blocked by wall
+    //every light state in the area will be updated +1
+
+    fn update_light_state_cross(&mut self, row: usize, col: usize) {
+        //if self is a light bulb
+        if self.light_state[row][col] != PlayerObject::IsLightBulb {
+            return;
+        }
+
+        let rows = self.light_state.len();
+        let cols = self.light_state[0].len();
+
+        // Check if the position is within bounds
+        if row >= rows || col >= cols {
+            return;
+        }
+
+        // Update the light state at the current position
+        //update up direction
+        for i in (0..row).rev() {
+            if self.light_state[i][col] == PlayerObject::IsWall {
+                break;
+            }
+            self.light_state[i][col] = LightState::light(self.light_state[i][col].value() + 1);
+        }
+        //update down direction
+        for i in row + 1..rows {
+            if self.light_state[i][col] == PlayerObject::IsWall {
+                break;
+            }
+            self.light_state[i][col] = LightState::light(self.light_state[i][col].value() + 1);
+        }
+        //update left direction
+        for j in (0..col).rev() {
+            if self.light_state[row][j] == PlayerObject::IsWall {
+                break;
+            }
+            self.light_state[row][j] = LightState::light(self.light_state[row][j].value() + 1);
+        }
+        //update right direction
+        for j in col + 1..cols {
+            if self.light_state[row][j] == PlayerObject::IsWall {
+                break;
+            }
+            self.light_state[row][j] = LightState::light(self.light_state[row][j].value() + 1);
+        }
+        //update self
+        self.light_state[row][col] = LightState::light(4);
+    }
+
+    fn update_light_state(&mut self) {
+        //for every light blub ,  fn move_cursor(&mut self, direction: Direction) {
+        if let Some(puzzle) = &self.puzzle {
+            let rows = puzzle.metadata.size.rows;
+            let cols = puzzle.metadata.size.cols;
+            let (row, col) = self.cursor_position;
+
+            self.cursor_position = match direction {
+                Direction::Up if row > 0 => (row - 1, col),
+                Direction::Down if row < rows - 1 => (row + 1, col),
+                Direction::Left if col > 0 => (row, col - 1),
+                Direction::Right if col < cols - 1 => (row, col + 1),
+                _ => (row, col),
+            };
+        }
+    }
+
+    pub fn player_operation(&mut self, operation: PlayerOperation) {
+        if let Some(puzzle) = &self.puzzle {
+            let (row, col) = self.cursor_position;
+
+            match operation {
+                PlayerOperation::AddLightbulb => {
+                    if self.light_state[row][col] != LightState::Dark {
+                        return;
+                    }
+
+                    match self.PlayerObject[row][col] {
+                        PlayerObject::Empty => {
+                            self.PlayerObject[row][col] = PlayerObject::Lightbulb
+                        }
+                        PlayerObject::Lightbulb => {
+                            self.PlayerObject[row][col] = PlayerObject::Empty
+                        }
+                        PlayerObject::Flag => self.PlayerObject[row][col] = PlayerObject::Empty,
+                        _ => {}
+                    }
+                }
+                PlayerOperation::AddFlag => {
+                    if self.light_state[row][col] != LightState::Dark {
+                        return;
+                    }
+                    match self.PlayerObject[row][col] {
+                        PlayerObject::Empty => self.PlayerObject[row][col] = PlayerObject::Flag,
+                        PlayerObject::Flag => self.PlayerObject[row][col] = PlayerObject::Empty,
+                        PlayerObject::Lightbulb => {
+                            self.PlayerObject[row][col] = PlayerObject::Empty
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 }
