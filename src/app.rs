@@ -16,14 +16,9 @@ pub enum CurrentScreen {
 //#[derive(Debug)]
 pub struct App {
     pub current_screen: CurrentScreen,
-    pub menu_list: Menulist,
+    pub menu_list: ListState,
     pub game: Option<Game>,
     exit: bool,
-}
-
-pub struct Menulist {
-    entries: Vec<String>,
-    state: ListState,
 }
 
 impl App {
@@ -32,16 +27,7 @@ impl App {
             current_screen: CurrentScreen::Menu,
             game: None,
             exit: false,
-            menu_list: Menulist {
-                entries: vec![
-                    "New Game".to_string(),
-                    "Archive".to_string(),
-                    "Settings".to_string(),
-                    "Help".to_string(),
-                    "Exit".to_string(),
-                ],
-                state: ListState::default(),
-            },
+            menu_list: ListState::default(),
         }
     }
 
@@ -79,27 +65,27 @@ impl App {
             KeyCode::Down => {
                 self.menu_select_next();
             }
-            // KeyCode::Enter => {
-            //     if let Some(selected) = self.menu_list.selected() {
-            //         self.current_screen = match selected {
-            //             0 => CurrentScreen::Game,
-            //             1 => CurrentScreen::Archive,
-            //             2 => CurrentScreen::Settings,
-            //             3 => CurrentScreen::Help,
-            //             4 => CurrentScreen::Exiting,
-            //             _ => CurrentScreen::Menu,
-            //         };
-            //     }
-            // }
+            KeyCode::Enter => {
+                if let Some(selected) = self.menu_list.selected() {
+                    self.current_screen = match selected {
+                        0 => CurrentScreen::Game,
+                        1 => CurrentScreen::Archive,
+                        2 => CurrentScreen::Settings,
+                        3 => CurrentScreen::Help,
+                        4 => CurrentScreen::Exiting,
+                        _ => CurrentScreen::Menu,
+                    };
+                }
+            }
             _ => {}
         }
     }
 
     fn menu_select_next(&mut self) {
-        self.menu_list.state.select_next();
+        self.menu_list.select_next();
     }
     fn menu_select_prev(&mut self) {
-        self.menu_list.state.select_previous();
+        self.menu_list.select_previous();
     }
 
     pub fn start_game(&mut self, puzzle_id: u32) -> Result<(), Box<dyn std::error::Error>> {
@@ -114,25 +100,31 @@ impl App {
     // Add other event handlers as needed
     fn handle_game_events(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            KeyCode::Char('q') => {
+                if let Some(game) = &mut self.game {
+                    game.quit();
+                }
+
+                self.current_screen = CurrentScreen::Menu;
+            }
             KeyCode::Up => {
                 if let Some(game) = &mut self.game {
-                    game.move_cursor(Direction::Up);
+                    game.player_move_cursor(Direction::Up);
                 }
             }
             KeyCode::Down => {
                 if let Some(game) = &mut self.game {
-                    game.move_cursor(Direction::Down);
+                    game.player_move_cursor(Direction::Down);
                 }
             }
             KeyCode::Left => {
                 if let Some(game) = &mut self.game {
-                    game.move_cursor(Direction::Left);
+                    game.player_move_cursor(Direction::Left);
                 }
             }
             KeyCode::Right => {
                 if let Some(game) = &mut self.game {
-                    game.move_cursor(Direction::Right);
+                    game.player_move_cursor(Direction::Right);
                 }
             }
             KeyCode::Char(' ') => {
@@ -160,6 +152,14 @@ impl App {
     fn handle_help_events(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            _ => {}
+        }
+    }
+
+    fn handle_exiting_events(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            KeyCode::Enter => self.exit = true,
             _ => {}
         }
     }

@@ -1,3 +1,5 @@
+use ratatui::widgets::{List, ListItem, ListState};
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -48,6 +50,7 @@ pub enum LightState {
     Light(u8),
     Dark,
 }
+
 impl LightState {
     pub fn light(value: u8) -> Self {
         LightState::Light(value)
@@ -91,6 +94,7 @@ pub struct Game {
     pub player_objects: Vec<Vec<PlayerObject>>,
     pub display: Vec<Vec<CellDisplay>>,
     pub cursor_position: (usize, usize),
+    //pub player_position_state: Vec<ListState>,
 }
 
 impl Game {
@@ -103,6 +107,7 @@ impl Game {
             player_objects: Vec::new(),
             display: Vec::new(),
             cursor_position: (0, 0),
+            //player_position_state: Vec::new(),
         }
     }
 
@@ -123,6 +128,9 @@ impl Game {
         // Extract problem and solution
         let problem: Vec<Vec<String>> = serde_json::from_value(puzzle_json["problem"].clone())?;
         let solution: Vec<Vec<String>> = serde_json::from_value(puzzle_json["solution"].clone())?;
+
+        // Initialize player position state
+        //let player_position_state = vec![ListState::default(); 1];
 
         // Create puzzle
         self.puzzle = Some(Puzzle {
@@ -193,6 +201,9 @@ impl Game {
 
     pub fn start(&mut self) {
         self.state = GameState::Playing;
+    }
+    pub fn quit(&mut self) {
+        self.state = GameState::GameOver;
     }
 
     fn update(&mut self) {
@@ -310,8 +321,29 @@ impl Game {
         CellDisplay::Dark
     }
 
-    pub fn move_cursor(&mut self, direction: Direction) {
-        todo!()
+    pub fn player_move_cursor(&mut self, direction: Direction) {
+        match direction {
+            Direction::Up => {
+                if self.cursor_position.0 > 0 {
+                    self.cursor_position.0 -= 1;
+                }
+            }
+            Direction::Down => {
+                if self.cursor_position.0 < self.board.len() - 1 {
+                    self.cursor_position.0 += 1;
+                }
+            }
+            Direction::Left => {
+                if self.cursor_position.1 > 0 {
+                    self.cursor_position.1 -= 1;
+                }
+            }
+            Direction::Right => {
+                if self.cursor_position.1 < self.board[0].len() - 1 {
+                    self.cursor_position.1 += 1;
+                }
+            }
+        }
     }
 
     pub fn player_operation(&mut self, operation: PlayerOperation) {

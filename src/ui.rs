@@ -1,3 +1,5 @@
+use std::slice::Chunks;
+
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
@@ -7,16 +9,17 @@ use ratatui::{
 };
 
 use crate::app::{App, CurrentScreen};
-//use crate::game::Puzzle;
+use crate::game::{Game, Puzzle, PuzzleMetadata, PuzzleSize};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     match app.current_screen {
         CurrentScreen::Menu => draw_menu(frame, app),
-        CurrentScreen::Game => draw_game(frame, app),
+        CurrentScreen::Game => draw_game(frame, app, game),
         CurrentScreen::Archive => draw_archive(frame, app),
         CurrentScreen::Help => draw_help(frame, app),
         CurrentScreen::Settings => draw_settings(frame, app),
-        CurrentScreen::Exiting => {}
+        CurrentScreen::Exiting => draw_exiting(frame, app),
+        _ => {}
     }
 }
 
@@ -40,19 +43,17 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
 
     frame.render_widget(header, chunks[0]);
 
-    // let menus = Vec<ListItem> = app.menu_list.iter().map(|item| {
-    //     ListItem::new(Paragraph::new(item).style(Style::default().fg(Color::White)))
-    // }).collect();
+    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
 
-    let menu = List::new(app.menu_list)
+    let menu = List::new(list)
         .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
         .highlight_style(Style::default().fg(Color::Yellow))
         .highlight_symbol(">>")
         .repeat_highlight_symbol(true)
-        .direction(ListDirection::BottomToTop);
+        .direction(ListDirection::TopToBottom);
 
-    frame.render_widget(menu, chunks[1]);
+    frame.render_stateful_widget(menu, chunks[1], &mut app.menu_list);
 
     // Footer
     let footer = Block::default()
@@ -61,32 +62,56 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
     frame.render_widget(footer, chunks[2]);
 }
 
-fn draw_game(frame: &mut Frame, app: &mut App) {
-    if let Some(game) = &app.game {
-        if let Some(puzzle) = &game.puzzle {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3), // Game info like metadata
-                    Constraint::Min(1),    // Game board (for the puzzle)
-                    Constraint::Length(3), // Controls hint
-                ])
-                .split(frame.size());
+fn draw_game(frame: &mut Frame, app: &mut App, game: &mut Game) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Game info like metadata
+            Constraint::Min(1),    // Game board (for the puzzle)
+            Constraint::Length(3), // Controls hint
+        ])
+        .split(frame.size());
 
-            // Game info (top section)
-            let metadata = Paragraph::new("Game info")
-                .block(Block::default().borders(Borders::ALL).title("Game Info"));
+    // Game info (top section)
+    let metadata = Paragraph::new("Game info")
+        .block(Block::default().borders(Borders::ALL).title("Game Info"));
 
-            frame.render_widget(metadata, chunks[0]);
+    frame.render_widget(metadata, chunks[0]);
 
-            todo!();
+    // Game board (middle section)
+    // let board = Paragraph::new("Game board goes here")
+    //     .block(Block::default().borders(Borders::ALL).title("Game Board"));
 
-            // Controls hint (bottom section)
-            let controls_hint =
-                Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
-                    .block(Block::default().borders(Borders::ALL).title("Controls"));
+    // frame.render_widget(board, chunks[1]);
 
-            frame.render_widget(controls_hint, chunks[2]);
+    // Controls hint (bottom section)
+    let controls_hint = Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
+        .block(Block::default().borders(Borders::ALL).title("Controls"));
+
+    frame.render_widget(controls_hint, chunks[2]);
+
+    let size = 10;
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Ratio(1, size as u32); size])
+        .split(chunks[1]);
+
+    for (y, row_area) in rows.into_iter().enumerate() {
+        let cols = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Ratio(1, size as u32); size])
+            .split(row_area);
+
+        for (x, cell_area) in cols.into_iter().enumerate() {
+            let symbol = display[y][x];
+            let block = Paragraph::new(symbol.to_string()).style(if cursor_position == (x, y) {
+                Style::default().fg(Color::Yellow)
+            } else {
+                Style::default()
+            });
+
+            f.render_widget(block, cell_area);
         }
     }
 }
@@ -112,6 +137,10 @@ fn draw_help(frame: &mut Frame, _app: &mut App) {
 }
 
 fn draw_exiting(frame: &mut Frame, app: &mut App) {
-    todo!()
-    // Implement exiting UI
+    let exiting_text = "Do you want to exit?\n\nPress Enter to exit\nPress Q to return to menu";
+    let exiting_paragraph = Paragraph::new(exiting_text)
+        .block(Block::default().borders(Borders::ALL).title("Exiting"))
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(exiting_paragraph, frame.area());
 }
