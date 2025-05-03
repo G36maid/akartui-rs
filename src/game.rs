@@ -65,6 +65,7 @@ pub enum PlayerObject {
     Empty,
 }
 
+#[derive(PartialEq, Clone, Copy)]
 pub enum CellDisplay {
     Wall,
     Target(u8),
@@ -202,12 +203,13 @@ impl Game {
 
     pub fn start(&mut self) {
         self.state = GameState::Playing;
+        //panic!()
     }
     pub fn quit(&mut self) {
         self.state = GameState::GameOver;
     }
 
-    fn update(&mut self) {
+    pub fn update(&mut self) {
         //change every light state to light(0) if !(IsWall)
         for i in 0..self.light_state.len() {
             for j in 0..self.light_state[i].len() {
@@ -296,7 +298,7 @@ impl Game {
         self.light_state[row][col] = LightState::light(4);
     }
 
-    fn display_priority(&mut self, row: usize, col: usize) -> CellDisplay {
+    fn display_priority(&self, row: usize, col: usize) -> CellDisplay {
         //// Wall has highest priority
         if self.board[row][col] == CellType::Wall {
             return CellDisplay::Wall;
@@ -322,15 +324,16 @@ impl Game {
         CellDisplay::Dark
     }
 
-    // pub fn get_display(&self) -> Vec<Vec<CellDisplay>> {
-    //     let mut display = vec![vec![CellDisplay::Dark; self.board[0].len()]; self.board.len()];
-    //     for i in 0..self.board.len() {
-    //         for j in 0..self.board[0].len() {
-    //             display[i][j] = self.display_priority(i, j);
-    //         }
-    //     }
-    //     display
-    // }
+    pub fn get_display(&self) -> Vec<Vec<CellDisplay>> {
+        //todo!();
+        let mut display = vec![vec![CellDisplay::Dark; self.board[0].len()]; self.board.len()];
+        for i in 0..self.board.len() {
+            for j in 0..self.board[0].len() {
+                display[i][j] = self.display_priority(i, j);
+            }
+        }
+        display
+    }
 
     pub fn player_move_cursor(&mut self, direction: Direction) {
         match direction {

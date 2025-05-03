@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::app::{App, CurrentScreen};
-use crate::game::{Game, Puzzle, PuzzleMetadata, PuzzleSize};
+use crate::game::{CellDisplay, Game, Puzzle, PuzzleMetadata, PuzzleSize};
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     match app.current_screen {
@@ -66,37 +66,82 @@ fn draw_game(frame: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(5), // 調高一點
             Constraint::Min(1),
             Constraint::Length(3),
         ])
         .split(frame.size());
 
-    let metadata = Paragraph::new("Game info")
-        .block(Block::default().borders(Borders::ALL).title("Game Info"));
+    // 取得 metadata
+    let meta_text = if let Some(game) = &app.game {
+        if let Some(puzzle) = &game.puzzle {
+            let meta = &puzzle.metadata;
+            format!(
+                "Puzzle ID: {}\nType: {}\nAuthor: {}\nSize: {}x{}\nSource: {}\nInfo: {}",
+                puzzle.id,
+                meta.puzzle_type,
+                meta.author,
+                meta.size.rows,
+                meta.size.cols,
+                meta.source,
+                meta.info
+            )
+        } else {
+            "No puzzle loaded".to_string()
+        }
+    } else {
+        "No game".to_string()
+    };
+
+    let metadata =
+        Paragraph::new(meta_text).block(Block::default().borders(Borders::ALL).title("Game Info"));
     frame.render_widget(metadata, chunks[0]);
 
     let controls_hint = Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
         .block(Block::default().borders(Borders::ALL).title("Controls"));
     frame.render_widget(controls_hint, chunks[2]);
 
-    let size = 10;
+    if let Some(game) = &app.game {
+        let display = game.get_display();
+        let rows = display.len();
+        let cols = display[0].len();
 
-    let rows = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Ratio(1, size as u32); size])
-        .split(chunks[1]);
+        let row_areas = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Ratio(1, rows as u32); rows])
+            .split(chunks[1]);
 
-    for row_area in rows.iter() {
-        let cols = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Ratio(1, size as u32); size])
-            .split(*row_area); // dereference row_area
+        for (i, row_area) in row_areas.iter().enumerate() {
+            let col_areas = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(vec![Constraint::Ratio(1, cols as u32); cols])
+                .split(*row_area);
 
-        for cell_area in cols.iter() {
-            let block = Paragraph::new("").block(Block::default().borders(Borders::ALL));
+            for (j, cell_area) in col_areas.iter().enumerate() {
+                let (symbol, style): (String, Style) = match display[i][j] {
+                    CellDisplay::Wall => ("██".to_string(), Style::default().fg(Color::DarkGray)),
+                    CellDisplay::Target(n) => {
+                        (format!("{}", n), Style::default().fg(Color::Yellow))
+                    }
+                    CellDisplay::LightBulb => {
+                        ("💡".to_string(), Style::default().fg(Color::Yellow))
+                    }
+                    CellDisplay::Light(_) => ("·".to_string(), Style::default().fg(Color::White)),
+                    CellDisplay::Flag => ("🚩".to_string(), Style::default().fg(Color::Red)),
+                    CellDisplay::Dark => (" ".to_string(), Style::default()),
+                };
 
-            frame.render_widget(block, *cell_area);
+                // 高亮游標
+                let mut cell_style = style;
+                if (i, j) == game.cursor_position {
+                    cell_style = cell_style.bg(Color::Blue);
+                }
+
+                let para = Paragraph::new(symbol)
+                    .style(cell_style)
+                    .block(Block::default().borders(Borders::ALL));
+                frame.render_widget(para, *cell_area);
+            }
         }
     }
 }

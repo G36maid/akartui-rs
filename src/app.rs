@@ -52,7 +52,7 @@ impl App {
             KeyCode::Char('g') => {
                 let puzzle_id = rand::thread_rng().gen_range(1..=750);
                 if let Err(e) = self.start_game(puzzle_id) {
-                    eprintln!("Failed to start game: {}", e);
+                    //eprintln!("Failed to start game: {}", e);
                 }
             }
             KeyCode::Char('a') => self.current_screen = CurrentScreen::Archive,
@@ -110,31 +110,37 @@ impl App {
             KeyCode::Up => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Up);
+                    game.update();
                 }
             }
             KeyCode::Down => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Down);
+                    game.update();
                 }
             }
             KeyCode::Left => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Left);
+                    game.update();
                 }
             }
             KeyCode::Right => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Right);
+                    game.update();
                 }
             }
             KeyCode::Char(' ') => {
                 if let Some(game) = &mut self.game {
                     game.player_operation(PlayerOperation::AddLightbulb);
+                    game.update();
                 }
             }
             KeyCode::Char('p') => {
                 if let Some(game) = &mut self.game {
                     game.player_operation(PlayerOperation::AddFlag);
+                    game.update();
                 }
             }
             _ => {}
