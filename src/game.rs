@@ -163,35 +163,36 @@ impl Game {
                         "x" => {
                             self.board[i][j] = CellType::Wall;
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         "0" => {
                             self.board[i][j] = CellType::Target(0);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         "1" => {
                             self.board[i][j] = CellType::Target(1);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         "2" => {
                             self.board[i][j] = CellType::Target(2);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         "3" => {
                             self.board[i][j] = CellType::Target(3);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         "4" => {
                             self.board[i][j] = CellType::Target(4);
                             self.light_state[i][j] = LightState::IsWall;
-                            self.player_objects[i][j] = PlayerObject::Empty;
+                            self.player_objects[i][j] = PlayerObject::IsWall;
                         }
                         _ => {
                             self.board[i][j] = CellType::Empty;
+                            self.player_objects[i][j] = PlayerObject::Empty;
                         }
                     }
                 }
@@ -320,6 +321,16 @@ impl Game {
         //Dark
         CellDisplay::Dark
     }
+
+    // pub fn get_display(&self) -> Vec<Vec<CellDisplay>> {
+    //     let mut display = vec![vec![CellDisplay::Dark; self.board[0].len()]; self.board.len()];
+    //     for i in 0..self.board.len() {
+    //         for j in 0..self.board[0].len() {
+    //             display[i][j] = self.display_priority(i, j);
+    //         }
+    //     }
+    //     display
+    // }
 
     pub fn player_move_cursor(&mut self, direction: Direction) {
         match direction {

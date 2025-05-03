@@ -14,7 +14,7 @@ use crate::game::{Game, Puzzle, PuzzleMetadata, PuzzleSize};
 pub fn ui(frame: &mut Frame, app: &mut App) {
     match app.current_screen {
         CurrentScreen::Menu => draw_menu(frame, app),
-        CurrentScreen::Game => draw_game(frame, app, game),
+        CurrentScreen::Game => draw_game(frame, app),
         CurrentScreen::Archive => draw_archive(frame, app),
         CurrentScreen::Help => draw_help(frame, app),
         CurrentScreen::Settings => draw_settings(frame, app),
@@ -62,32 +62,22 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
     frame.render_widget(footer, chunks[2]);
 }
 
-fn draw_game(frame: &mut Frame, app: &mut App, game: &mut Game) {
+fn draw_game(frame: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3), // Game info like metadata
-            Constraint::Min(1),    // Game board (for the puzzle)
-            Constraint::Length(3), // Controls hint
+            Constraint::Length(3),
+            Constraint::Min(1),
+            Constraint::Length(3),
         ])
         .split(frame.size());
 
-    // Game info (top section)
     let metadata = Paragraph::new("Game info")
         .block(Block::default().borders(Borders::ALL).title("Game Info"));
-
     frame.render_widget(metadata, chunks[0]);
 
-    // Game board (middle section)
-    // let board = Paragraph::new("Game board goes here")
-    //     .block(Block::default().borders(Borders::ALL).title("Game Board"));
-
-    // frame.render_widget(board, chunks[1]);
-
-    // Controls hint (bottom section)
     let controls_hint = Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
         .block(Block::default().borders(Borders::ALL).title("Controls"));
-
     frame.render_widget(controls_hint, chunks[2]);
 
     let size = 10;
@@ -97,21 +87,16 @@ fn draw_game(frame: &mut Frame, app: &mut App, game: &mut Game) {
         .constraints(vec![Constraint::Ratio(1, size as u32); size])
         .split(chunks[1]);
 
-    for (y, row_area) in rows.into_iter().enumerate() {
+    for row_area in rows.iter() {
         let cols = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Ratio(1, size as u32); size])
-            .split(row_area);
+            .split(*row_area); // dereference row_area
 
-        for (x, cell_area) in cols.into_iter().enumerate() {
-            let symbol = display[y][x];
-            let block = Paragraph::new(symbol.to_string()).style(if cursor_position == (x, y) {
-                Style::default().fg(Color::Yellow)
-            } else {
-                Style::default()
-            });
+        for cell_area in cols.iter() {
+            let block = Paragraph::new("").block(Block::default().borders(Borders::ALL));
 
-            f.render_widget(block, cell_area);
+            frame.render_widget(block, *cell_area);
         }
     }
 }
