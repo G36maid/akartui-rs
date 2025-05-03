@@ -1,23 +1,24 @@
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use ratatui::DefaultTerminal;
 use std::io;
 
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Style,
-    text::{Line, Text},
-    widgets::{Block, Borders, Paragraph},
-    DefaultTerminal, Frame,
-};
-
 mod app;
+mod ui;
 use app::App;
+use ui::ui;
 
 fn main() -> io::Result<()> {
     let mut terminal = ratatui::init();
-    let mut app_result = App::default().run(&mut terminal); // Using default() is clean and sufficient
+    let mut app = App::new(); // Using new() with explicit initialization
+
+    // Main loop moved to main.rs
+    while !app.should_quit() {
+        terminal.draw(|frame| ui(frame, &mut app))?;
+        if let Event::Key(key) = event::read()? {
+            app.handle_event(key);
+        }
+    }
 
     ratatui::restore();
-    app_result
+    Ok(())
 }
