@@ -17,6 +17,7 @@ pub enum CurrentScreen {
 pub struct App {
     pub current_screen: CurrentScreen,
     pub menu_list: ListState,
+    pub archive_list: ListState,
     pub game: Option<Game>,
     exit: bool,
 }
@@ -25,9 +26,10 @@ impl App {
     pub fn new() -> App {
         App {
             current_screen: CurrentScreen::Menu,
+            menu_list: ListState::default(),
+            archive_list: ListState::default(),
             game: None,
             exit: false,
-            menu_list: ListState::default(),
         }
     }
 
@@ -148,11 +150,23 @@ impl App {
     }
 
     fn handle_archive_events(&mut self, key: KeyEvent) {
-        // Handle archive events
+        match key.code {
+            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            KeyCode::Up => {
+                self.archive_list.select_previous();
+            }
+            KeyCode::Down => {
+                self.archive_list.select_next();
+            }
+            _ => {}
+        }
     }
 
     fn handle_settings_events(&mut self, key: KeyEvent) {
-        // Handle settings events
+        match key.code {
+            KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
+            _ => {}
+        }
     }
 
     fn handle_help_events(&mut self, key: KeyEvent) {

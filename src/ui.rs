@@ -2,7 +2,7 @@ use std::slice::Chunks;
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
     widgets::{Block, Borders, Clear, List, ListDirection, ListItem, ListState, Paragraph, Wrap},
     Frame,
@@ -60,6 +60,74 @@ fn draw_menu(frame: &mut Frame, app: &mut App) {
         .borders(Borders::ALL)
         .title("Press q to quit");
     frame.render_widget(footer, chunks[2]);
+}
+
+fn draw_archive(frame: &mut Frame, app: &mut App) {
+    //clear first
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(1),    // Content
+            Constraint::Length(3), // Footer
+        ])
+        .split(frame.size());
+
+    // Header
+    let header = Paragraph::new("Test text in header").block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title_alignment(ratatui::layout::Alignment::Center)
+            .title("Akari Game"),
+    );
+
+    frame.render_widget(header, chunks[0]);
+
+    // Footer
+    let footer = Block::default()
+        .borders(Borders::ALL)
+        .title("Press q to quit");
+    frame.render_widget(footer, chunks[2]);
+
+    let middle = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Ratio(3, 10), // Header
+            Constraint::Min(0),
+        ])
+        .split(chunks[1]);
+
+    let archive_items: Vec<String> = (1..=750).map(|i| format!("Puzzle {:03}", i)).collect();
+    let archive_list = List::new(
+        archive_items
+            .iter()
+            .map(|s| ListItem::new(s.clone()))
+            .collect::<Vec<_>>(),
+    )
+    .block(Block::default().borders(Borders::ALL).title("Archive"))
+    .style(Style::default().fg(Color::White))
+    .highlight_style(
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
+    )
+    .highlight_symbol(">> ")
+    .repeat_highlight_symbol(true)
+    .direction(ListDirection::TopToBottom);
+
+    frame.render_stateful_widget(archive_list, middle[0], &mut app.archive_list);
+
+    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
+
+    let menu = List::new(list)
+        .block(Block::default().borders(Borders::ALL))
+        .style(Style::default().fg(Color::White))
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .highlight_symbol(">>")
+        .repeat_highlight_symbol(true)
+        .direction(ListDirection::TopToBottom);
+
+    frame.render_stateful_widget(menu, middle[1], &mut app.menu_list);
 }
 
 fn draw_game(frame: &mut Frame, app: &mut App) {
@@ -146,13 +214,8 @@ fn draw_game(frame: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_archive(frame: &mut Frame, app: &mut App) {
-    todo!()
-    // Implement archive UI
-}
-
 fn draw_settings(frame: &mut Frame, app: &mut App) {
-    todo!()
+    draw_menu(frame, app);
     // Implement settings UI
 }
 
@@ -167,10 +230,74 @@ fn draw_help(frame: &mut Frame, _app: &mut App) {
 }
 
 fn draw_exiting(frame: &mut Frame, app: &mut App) {
+    //clear first
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Header
+            Constraint::Min(1),    // Content
+            Constraint::Length(3), // Footer
+        ])
+        .split(frame.size());
+
+    // Header
+    let header = Paragraph::new("Test text in header").block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title_alignment(ratatui::layout::Alignment::Center)
+            .title("Akari Game"),
+    );
+
+    frame.render_widget(header, chunks[0]);
+
+    // Footer
+    let footer = Block::default()
+        .borders(Borders::ALL)
+        .title("Press q to quit");
+    frame.render_widget(footer, chunks[2]);
+
+    let middle = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Ratio(3, 10), // Header
+            Constraint::Min(0),
+        ])
+        .split(chunks[1]);
+
+    let archive_items: Vec<String> = (1..=750).map(|i| format!("Puzzle {:03}", i)).collect();
+    let archive_list = List::new(
+        archive_items
+            .iter()
+            .map(|s| ListItem::new(s.clone()))
+            .collect::<Vec<_>>(),
+    )
+    .block(Block::default().borders(Borders::ALL).title("Archive"))
+    .style(Style::default().fg(Color::White))
+    .highlight_style(
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD),
+    )
+    .highlight_symbol(">> ")
+    .repeat_highlight_symbol(true)
+    .direction(ListDirection::TopToBottom);
+
+    frame.render_stateful_widget(archive_list, middle[0], &mut app.archive_list);
+
+    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
+
+    let menu = List::new(list)
+        .block(Block::default().borders(Borders::ALL))
+        .style(Style::default().fg(Color::White))
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .highlight_symbol(">>")
+        .repeat_highlight_symbol(true)
+        .direction(ListDirection::TopToBottom);
+
+    frame.render_stateful_widget(menu, middle[1], &mut app.menu_list);
+
     let exiting_text = "Do you want to exit?\n\nPress Enter to exit\nPress Q to return to menu";
     let exiting_paragraph = Paragraph::new(exiting_text)
         .block(Block::default().borders(Borders::ALL).title("Exiting"))
         .wrap(Wrap { trim: true });
-
-    frame.render_widget(exiting_paragraph, frame.area());
 }
