@@ -54,7 +54,7 @@ impl App {
         match key.code {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('g') => {
-                let puzzle_id = rand::thread_rng().gen_range(1..=750);
+                let puzzle_id = rand::rng().random_range(1..=750);
                 if let Err(e) = self.start_game(puzzle_id) {
                     eprintln!("Failed to start game: {}", e);
                 }
@@ -74,7 +74,7 @@ impl App {
                     match selected {
                         0 => {
                             // New Game
-                            let puzzle_id = rand::thread_rng().gen_range(1..=750);
+                            let puzzle_id = rand::rng().random_range(1..=750);
                             if let Err(e) = self.start_game(puzzle_id) {
                                 eprintln!("Failed to start game: {}", e);
                             }

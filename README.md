@@ -1,108 +1,142 @@
 # akartui-rs
 
-A Rust-based TUI Akari (Light Up) game.
+A Rust-based terminal user interface (TUI) implementation of the **Akari (Light Up)** logic puzzle.
 
-## App Layout & Design
-
-### 整體結構
-
-- **上方**：資訊欄（Puzzle ID、類型、作者、尺寸、來源、說明等）
-- **中間**：左右分割
-    - **左側**：Archive 題庫列表（1~750 題，可上下選擇，Enter 開始該題）
-    - **右側**：根據狀態顯示內容
-        - 主選單（New Game, Archive, Settings, Help, Exit）
-        - 遊戲畫面（棋盤）
-        - 設定
-        - 說明
-        - 離開確認
-- **下方**：操作提示（根據狀態顯示快捷鍵說明）
+This project uses [ratatui](https://github.com/ratatui-org/ratatui) for rendering the UI, and provides a playable and interactive Akari puzzle game with archive support and keyboard navigation.
 
 ---
 
-### Menu（主選單）
+## Features
 
-- New Game：隨機開始一題
-- Archive：切換到題庫選擇
-- Settings：遊戲設定（預留）
-- Help：顯示說明
-- Exit：離開遊戲
-
----
-
-### Archive（題庫選擇）
-
-- 左側顯示 1~750 題目列表，可上下移動
-- 右側可顯示該題 metadata 或預覽（預留）
-- 按 Enter 開始該題
+- Interactive TUI-based Akari game
+- Archive of 750 puzzles (from Janko.at)
+- Fully keyboard-controlled interface
+- Dynamic board layout
+- Puzzle metadata display
+- Game states with lightbulbs, flags, and walls
+- Random puzzle selection and archive browsing
 
 ---
 
-### Game（遊戲畫面）
+## Getting Started
 
-- 上方顯示 puzzle 資訊
-- 中間顯示棋盤（動態大小）
-- 下方顯示操作提示
-- 支援操作：
-    - 移動游標（↑↓←→）
-    - 放/移除燈泡（Space）
-    - 放/移除旗子（P）
-    - 返回主選單（Q）
+### Prerequisites
 
----
+- [Rust](https://www.rust-lang.org/tools/install) (version 1.70 or later recommended)
+- Terminal with UTF-8 support
 
-### Settings（設定）
+### Clone and Run
 
-- 預留
+```bash
+git clone https://github.com/G36maid/akartui-rs.git
+cd akartui-rs
+cargo run
+````
 
 ---
 
-### Help（說明）
+## Controls
 
-- 顯示所有快捷鍵與操作說明
-
----
-
-## 遊戲資料結構
-
-- Puzzle ID: 1~750
-- 棋盤大小：動態
-- 格子類型：
-    - Wall（牆）
-    - Target（帶數字的牆，0~4）
-    - Empty（空格）
-- 狀態：
-    - 牆
-    - 燈光（被照亮）
-    - 黑暗（未照亮）
-- 玩家操作：
-    - 放/移除燈泡
-    - 放/移除旗子
+| Key     | Action                              |
+| ------- | ----------------------------------- |
+| ↑ ↓ ← → | Move cursor or menu navigation      |
+| Enter   | Select item / Start puzzle          |
+| Space   | Place or remove a lightbulb         |
+| P       | Place or remove a flag              |
+| Q       | Go back / Return to main menu       |
+| G       | Start a new random puzzle (in menu) |
 
 ---
 
-## TODO
+## App Layout
 
-- [x] Archive 題庫選擇與啟動
-- [x] 主選單與隨機遊戲
-- [x] 棋盤顯示與操作
-- [ ] Settings 畫面
-- [ ] Archive 預覽/metadata 顯示
-- [ ] 完善勝負判定、提示等
+### Overall Structure
+
+```
++--------------------------------------------------------+
+| Puzzle Info (ID, Type, Author, Size, Source, Notes...) |
++----------------------+---------------------------------+
+| Archive List (1~750) | Puzzle View / Menu / Settings   |
+|                      |                                 |
++----------------------+---------------------------------+
+| Controls Hint Bar (contextual)                         |
++--------------------------------------------------------+
+```
+
+### Screens
+
+* **Main Menu**
+
+  * New Game
+  * Archive
+  * Settings (TBD)
+  * Help
+  * Exit
+
+* **Archive**
+
+  * Scrollable list of 750 puzzles
+  * Start any puzzle by pressing Enter
+
+* **Game View**
+
+  * Display puzzle board with dynamic layout
+  * Place/remove bulbs and flags
+  * Realtime light propagation logic
+
+* **Settings**
+
+  * Placeholder for future configuration
+
+* **Help**
+
+  * Keybindings and instructions
 
 ---
 
-## 操作說明
+## Puzzle Data
 
-- ↑↓←→：移動游標或選單
-- Enter：選擇/開始
-- Space：放/移除燈泡
-- P：放/移除旗子
-- Q：返回/離開
-- G：隨機開始新遊戲（主選單）
+Each puzzle contains:
+
+* A dynamic board with:
+
+  * **Walls** (`#`)
+  * **Clue Walls** (`0~4`)
+  * **Empty Cells** (`.`)
+* Puzzle ID: 1–750
+* Stored in `archive/` as individual text files
+* Source: [Janko.at Akari Collection](https://www.janko.at/Raetsel/Akari/)
 
 ---
 
-## 其他
+## Roadmap
 
-- 使用 [ratatui](https://github.com/ratatui-org/ratatui) 實現 TUI
-- Puzzle 檔案存放於 `archive/` 目錄
+* [x] Archive browser and puzzle loader
+* [x] Main menu and random puzzle support
+* [x] Game board display and cursor controls
+* [ ] Settings screen
+* [ ] Puzzle metadata/preview in archive
+* [ ] Full win condition checks and hints
+
+---
+
+## License and Puzzle Sources
+
+Puzzle data is based on the [Janko.at Akari Collection](https://www.janko.at/Raetsel/Akari/). Many puzzles were created by the Janko team and are published under:
+
+> Creative Commons 3.0: Attribution – Non-Commercial – Share Alike
+
+Some puzzles are used with permission from original authors. If you are a rights holder and would like attribution or removal, please contact us.
+
+---
+
+## Screenshots
+
+*(Coming soon)*
+
+---
+
+## Credits
+
+* TUI library: [ratatui](https://github.com/ratatui-org/ratatui)
+* Puzzles: [Janko.at](https://www.janko.at/Raetsel/Akari/)

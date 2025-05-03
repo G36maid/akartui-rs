@@ -26,14 +26,14 @@ pub struct Puzzle {
     pub id: u32,
     pub metadata: PuzzleMetadata,
     pub problem: Vec<Vec<String>>,
-    pub solution: Vec<Vec<String>>,
+    //pub solution: Vec<Vec<String>>,
 }
 
 #[derive(PartialEq)]
 pub enum GameState {
     Ready,
     Playing,
-    Paused,
+    //Paused,
     GameOver,
 }
 
@@ -93,7 +93,7 @@ pub struct Game {
     pub board: Vec<Vec<CellType>>,
     pub light_state: Vec<Vec<LightState>>,
     pub player_objects: Vec<Vec<PlayerObject>>,
-    pub display: Vec<Vec<CellDisplay>>,
+    //pub display: Vec<Vec<CellDisplay>>,
     pub target_remain: Vec<Vec<Option<i8>>>,
     pub cursor_position: (usize, usize),
     //pub player_position_state: Vec<ListState>,
@@ -107,7 +107,7 @@ impl Game {
             board: Vec::new(),
             light_state: Vec::new(),
             player_objects: Vec::new(),
-            display: Vec::new(),
+            //display: Vec::new(),
             target_remain: Vec::new(),
             cursor_position: (0, 0),
             //player_position_state: Vec::new(),
@@ -130,7 +130,7 @@ impl Game {
 
         // Extract problem and solution
         let problem: Vec<Vec<String>> = serde_json::from_value(puzzle_json["problem"].clone())?;
-        let solution: Vec<Vec<String>> = serde_json::from_value(puzzle_json["solution"].clone())?;
+        //let solution: Vec<Vec<String>> = serde_json::from_value(puzzle_json["solution"].clone())?;
 
         // Initialize player position state
         //let player_position_state = vec![ListState::default(); 1];
@@ -140,7 +140,7 @@ impl Game {
             id: puzzle_id,
             metadata,
             problem,
-            solution,
+            //solution,
         });
 
         // Initialize board
