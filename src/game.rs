@@ -325,7 +325,6 @@ impl Game {
     }
 
     pub fn get_display(&self) -> Vec<Vec<CellDisplay>> {
-        //todo!();
         let mut display = vec![vec![CellDisplay::Dark; self.board[0].len()]; self.board.len()];
         for i in 0..self.board.len() {
             for j in 0..self.board[0].len() {
@@ -361,45 +360,43 @@ impl Game {
     }
 
     pub fn player_operation(&mut self, operation: PlayerOperation) {
-        if let Some(puzzle) = &self.puzzle {
-            let (row, col) = self.cursor_position;
+        let (row, col) = self.cursor_position;
 
-            match operation {
-                PlayerOperation::AddLightbulb => {
-                    if self.light_state[row][col] != LightState::Dark {
-                        return;
-                    }
-
-                    match self.player_objects[row][col] {
-                        PlayerObject::Empty => {
-                            self.player_objects[row][col] = PlayerObject::Lightbulb;
-                        }
-                        PlayerObject::Lightbulb => {
-                            self.player_objects[row][col] = PlayerObject::Empty;
-                        }
-                        PlayerObject::Flag => {
-                            self.player_objects[row][col] = PlayerObject::Empty;
-                        }
-                        _ => {}
-                    }
+        match operation {
+            PlayerOperation::AddLightbulb => {
+                if self.light_state[row][col] != LightState::Dark {
+                    return;
                 }
-                PlayerOperation::AddFlag => {
-                    if self.light_state[row][col] != LightState::Dark {
-                        return;
-                    }
 
-                    match self.player_objects[row][col] {
-                        PlayerObject::Empty => {
-                            self.player_objects[row][col] = PlayerObject::Flag;
-                        }
-                        PlayerObject::Flag => {
-                            self.player_objects[row][col] = PlayerObject::Empty;
-                        }
-                        PlayerObject::Lightbulb => {
-                            self.player_objects[row][col] = PlayerObject::Empty;
-                        }
-                        _ => {}
+                match self.player_objects[row][col] {
+                    PlayerObject::Empty => {
+                        self.player_objects[row][col] = PlayerObject::Lightbulb;
                     }
+                    PlayerObject::Lightbulb => {
+                        self.player_objects[row][col] = PlayerObject::Empty;
+                    }
+                    PlayerObject::Flag => {
+                        self.player_objects[row][col] = PlayerObject::Empty;
+                    }
+                    _ => {}
+                }
+            }
+            PlayerOperation::AddFlag => {
+                if self.light_state[row][col] != LightState::Dark {
+                    return;
+                }
+
+                match self.player_objects[row][col] {
+                    PlayerObject::Empty => {
+                        self.player_objects[row][col] = PlayerObject::Flag;
+                    }
+                    PlayerObject::Flag => {
+                        self.player_objects[row][col] = PlayerObject::Empty;
+                    }
+                    PlayerObject::Lightbulb => {
+                        self.player_objects[row][col] = PlayerObject::Empty;
+                    }
+                    _ => {}
                 }
             }
         }

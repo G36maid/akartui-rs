@@ -44,7 +44,7 @@ impl App {
             CurrentScreen::Archive => self.handle_archive_events(key),
             CurrentScreen::Settings => self.handle_settings_events(key),
             CurrentScreen::Help => self.handle_help_events(key),
-            CurrentScreen::Exiting => self.exit = true,
+            CurrentScreen::Exiting => self.handle_exiting_events(key),
         }
     }
 
@@ -54,7 +54,7 @@ impl App {
             KeyCode::Char('g') => {
                 let puzzle_id = rand::thread_rng().gen_range(1..=750);
                 if let Err(e) = self.start_game(puzzle_id) {
-                    //eprintln!("Failed to start game: {}", e);
+                    eprintln!("Failed to start game: {}", e);
                 }
             }
             KeyCode::Char('a') => self.current_screen = CurrentScreen::Archive,
@@ -62,32 +62,31 @@ impl App {
             KeyCode::Char('h') => self.current_screen = CurrentScreen::Help,
             KeyCode::Char('e') => self.current_screen = CurrentScreen::Exiting,
             KeyCode::Up => {
-                self.menu_select_prev();
+                self.menu_list.select_previous();
             }
             KeyCode::Down => {
-                self.menu_select_next();
+                self.menu_list.select_next();
             }
             KeyCode::Enter => {
                 if let Some(selected) = self.menu_list.selected() {
-                    self.current_screen = match selected {
-                        0 => CurrentScreen::Game,
-                        1 => CurrentScreen::Archive,
-                        2 => CurrentScreen::Settings,
-                        3 => CurrentScreen::Help,
-                        4 => CurrentScreen::Exiting,
-                        _ => CurrentScreen::Menu,
-                    };
+                    match selected {
+                        0 => {
+                            // New Game
+                            let puzzle_id = rand::thread_rng().gen_range(1..=750);
+                            if let Err(e) = self.start_game(puzzle_id) {
+                                eprintln!("Failed to start game: {}", e);
+                            }
+                        }
+                        1 => self.current_screen = CurrentScreen::Archive,
+                        2 => self.current_screen = CurrentScreen::Settings,
+                        3 => self.current_screen = CurrentScreen::Help,
+                        4 => self.current_screen = CurrentScreen::Exiting,
+                        _ => self.current_screen = CurrentScreen::Menu,
+                    }
                 }
             }
             _ => {}
         }
-    }
-
-    fn menu_select_next(&mut self) {
-        self.menu_list.select_next();
-    }
-    fn menu_select_prev(&mut self) {
-        self.menu_list.select_previous();
     }
 
     pub fn start_game(&mut self, puzzle_id: u32) -> Result<(), Box<dyn std::error::Error>> {
@@ -139,7 +138,7 @@ impl App {
                     game.update();
                 }
             }
-            KeyCode::Char('p') => {
+            KeyCode::Char('f') => {
                 if let Some(game) = &mut self.game {
                     game.player_operation(PlayerOperation::AddFlag);
                     game.update();
@@ -157,6 +156,14 @@ impl App {
             }
             KeyCode::Down => {
                 self.archive_list.select_next();
+            }
+            KeyCode::Enter => {
+                if let Some(selected) = self.archive_list.selected() {
+                    let puzzle_id = (selected + 1) as u32;
+                    if let Err(e) = self.start_game(puzzle_id) {
+                        eprintln!("Failed to start game: {}", e);
+                    }
+                }
             }
             _ => {}
         }

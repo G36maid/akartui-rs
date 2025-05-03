@@ -1,102 +1,108 @@
-use std::slice::Chunks;
-
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListDirection, ListItem, ListState, Paragraph, Wrap},
+    style::{Color, Modifier, Style},
+    text::Span,
+    widgets::{Block, Borders, List, ListDirection, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
 
 use crate::app::{App, CurrentScreen};
-use crate::game::{CellDisplay, Game, Puzzle, PuzzleMetadata, PuzzleSize};
+use crate::game::CellDisplay;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
-    match app.current_screen {
-        CurrentScreen::Menu => draw_menu(frame, app),
-        CurrentScreen::Game => draw_game(frame, app),
-        CurrentScreen::Archive => draw_archive(frame, app),
-        CurrentScreen::Help => draw_help(frame, app),
-        CurrentScreen::Settings => draw_settings(frame, app),
-        CurrentScreen::Exiting => draw_exiting(frame, app),
-        _ => {}
-    }
-}
-
-fn draw_menu(frame: &mut Frame, app: &mut App) {
+    // 上下三分割
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(1),    // Content
-            Constraint::Length(3), // Footer
+            Constraint::Length(5), // Header/info
+            Constraint::Min(1),    // Main content
+            Constraint::Length(3), // Footer/helper
         ])
         .split(frame.size());
 
-    // Header
-    let header = Paragraph::new("Test text in header").block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title_alignment(ratatui::layout::Alignment::Center)
-            .title("Akari Game"),
-    );
+    // Header/info
+    draw_info(frame, app, chunks[0]);
 
-    frame.render_widget(header, chunks[0]);
+    // Footer/helper
+    draw_helper(frame, app, chunks[2]);
 
-    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
-
-    let menu = List::new(list)
-        .block(Block::default().borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true)
-        .direction(ListDirection::TopToBottom);
-
-    frame.render_stateful_widget(menu, chunks[1], &mut app.menu_list);
-
-    // Footer
-    let footer = Block::default()
-        .borders(Borders::ALL)
-        .title("Press q to quit");
-    frame.render_widget(footer, chunks[2]);
-}
-
-fn draw_archive(frame: &mut Frame, app: &mut App) {
-    //clear first
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(1),    // Content
-            Constraint::Length(3), // Footer
-        ])
-        .split(frame.size());
-
-    // Header
-    let header = Paragraph::new("Test text in header").block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title_alignment(ratatui::layout::Alignment::Center)
-            .title("Akari Game"),
-    );
-
-    frame.render_widget(header, chunks[0]);
-
-    // Footer
-    let footer = Block::default()
-        .borders(Borders::ALL)
-        .title("Press q to quit");
-    frame.render_widget(footer, chunks[2]);
-
+    // 中間左右分割
     let middle = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Ratio(3, 10), // Header
-            Constraint::Min(0),
+            Constraint::Length(24), // 左側 archive 固定寬度
+            Constraint::Min(1),     // 右側內容
         ])
         .split(chunks[1]);
 
+    // 左側 archive
+    draw_archive_sidebar(frame, app, middle[0]);
+
+    // 右側內容
+    match app.current_screen {
+        CurrentScreen::Menu => draw_menu_content(frame, app, middle[1]),
+        CurrentScreen::Archive => draw_archive_content(frame, app, middle[1]),
+        CurrentScreen::Game => draw_game_content(frame, app, middle[1]),
+        CurrentScreen::Settings => draw_settings_content(frame, app, middle[1]),
+        CurrentScreen::Help => draw_help_content(frame, app, middle[1]),
+        CurrentScreen::Exiting => draw_exiting_content(frame, app, middle[1]),
+    }
+}
+
+// Header/info
+fn draw_info(frame: &mut Frame, app: &App, area: Rect) {
+    let info = match app.current_screen {
+        CurrentScreen::Game => {
+            if let Some(game) = &app.game {
+                if let Some(puzzle) = &game.puzzle {
+                    let meta = &puzzle.metadata;
+                    format!(
+                        "Puzzle ID: {}\nType: {}\nAuthor: {}\nSize: {}x{}\nSource: {}\nInfo: {}",
+                        puzzle.id,
+                        meta.puzzle_type,
+                        meta.author,
+                        meta.size.rows,
+                        meta.size.cols,
+                        meta.source,
+                        meta.info
+                    )
+                } else {
+                    "No puzzle loaded".to_string()
+                }
+            } else {
+                "No game".to_string()
+            }
+        }
+        CurrentScreen::Archive => {
+            if let Some(selected) = app.archive_list.selected() {
+                format!("選擇題目：{:03}", selected + 1)
+            } else {
+                "選擇題目".to_string()
+            }
+        }
+        _ => "Akari Game".to_string(),
+    };
+
+    let para = Paragraph::new(info).block(Block::default().borders(Borders::ALL).title("Info"));
+    frame.render_widget(para, area);
+}
+
+// Footer/helper
+fn draw_helper(frame: &mut Frame, app: &App, area: Rect) {
+    let text = match app.current_screen {
+        CurrentScreen::Game => "↑↓←→:移動  Space:燈泡  F:旗子  Q:返回",
+        CurrentScreen::Archive => "↑↓:移動  Enter:開始遊戲  Q:返回",
+        CurrentScreen::Menu => "↑↓:選單  Enter:選擇  Q:離開",
+        CurrentScreen::Settings => "設定畫面  Q:返回",
+        CurrentScreen::Help => "Q:返回",
+        CurrentScreen::Exiting => "Enter:確認離開  Q:取消",
+    };
+    let para = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Helper"));
+    frame.render_widget(para, area);
+}
+
+// 左側 archive
+fn draw_archive_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
     let archive_items: Vec<String> = (1..=750).map(|i| format!("Puzzle {:03}", i)).collect();
     let archive_list = List::new(
         archive_items
@@ -115,60 +121,39 @@ fn draw_archive(frame: &mut Frame, app: &mut App) {
     .repeat_highlight_symbol(true)
     .direction(ListDirection::TopToBottom);
 
-    frame.render_stateful_widget(archive_list, middle[0], &mut app.archive_list);
+    frame.render_stateful_widget(archive_list, area, &mut app.archive_list);
+}
 
+// 右側內容：主選單
+fn draw_menu_content(frame: &mut Frame, app: &mut App, area: Rect) {
     let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
-
     let menu = List::new(list)
-        .block(Block::default().borders(Borders::ALL))
+        .block(Block::default().borders(Borders::ALL).title("Menu"))
         .style(Style::default().fg(Color::White))
         .highlight_style(Style::default().fg(Color::Yellow))
         .highlight_symbol(">>")
         .repeat_highlight_symbol(true)
         .direction(ListDirection::TopToBottom);
 
-    frame.render_stateful_widget(menu, middle[1], &mut app.menu_list);
+    frame.render_stateful_widget(menu, area, &mut app.menu_list);
 }
 
-fn draw_game(frame: &mut Frame, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(5), // 調高一點
-            Constraint::Min(1),
-            Constraint::Length(3),
-        ])
-        .split(frame.size());
-
-    // 取得 metadata
-    let meta_text = if let Some(game) = &app.game {
-        if let Some(puzzle) = &game.puzzle {
-            let meta = &puzzle.metadata;
-            format!(
-                "Puzzle ID: {}\nType: {}\nAuthor: {}\nSize: {}x{}\nSource: {}\nInfo: {}",
-                puzzle.id,
-                meta.puzzle_type,
-                meta.author,
-                meta.size.rows,
-                meta.size.cols,
-                meta.source,
-                meta.info
-            )
-        } else {
-            "No puzzle loaded".to_string()
-        }
+// 右側內容：Archive 預覽
+fn draw_archive_content(frame: &mut Frame, app: &mut App, area: Rect) {
+    let text = if let Some(selected) = app.archive_list.selected() {
+        format!(
+            "Puzzle {:03} 預覽/資訊\n(可在這裡顯示 metadata 或小棋盤)",
+            selected + 1
+        )
     } else {
-        "No game".to_string()
+        "請選擇題目".to_string()
     };
+    let para = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Preview"));
+    frame.render_widget(para, area);
+}
 
-    let metadata =
-        Paragraph::new(meta_text).block(Block::default().borders(Borders::ALL).title("Game Info"));
-    frame.render_widget(metadata, chunks[0]);
-
-    let controls_hint = Paragraph::new("Controls: Arrow keys to move, Space to add lightbulb.")
-        .block(Block::default().borders(Borders::ALL).title("Controls"));
-    frame.render_widget(controls_hint, chunks[2]);
-
+// 右側內容：遊戲
+fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
     if let Some(game) = &app.game {
         let display = game.get_display();
         let rows = display.len();
@@ -177,7 +162,7 @@ fn draw_game(frame: &mut Frame, app: &mut App) {
         let row_areas = Layout::default()
             .direction(Direction::Vertical)
             .constraints(vec![Constraint::Ratio(1, rows as u32); rows])
-            .split(chunks[1]);
+            .split(area);
 
         for (i, row_area) in row_areas.iter().enumerate() {
             let col_areas = Layout::default()
@@ -214,90 +199,27 @@ fn draw_game(frame: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_settings(frame: &mut Frame, app: &mut App) {
-    draw_menu(frame, app);
-    // Implement settings UI
+// 右側內容：設定
+fn draw_settings_content(frame: &mut Frame, _app: &mut App, area: Rect) {
+    let para = Paragraph::new("設定畫面（未實作）")
+        .block(Block::default().borders(Borders::ALL).title("Settings"));
+    frame.render_widget(para, area);
 }
 
-fn draw_help(frame: &mut Frame, _app: &mut App) {
+// 右側內容：說明
+fn draw_help_content(frame: &mut Frame, _app: &mut App, area: Rect) {
     let help_text = "Help for Akari Game\n\nControls:\nG - Start New Game\nA - Open Archive\nS - Open Settings\nH - Show This Help\nE - Exit Game\nQ - Quit Current Screen";
-
-    let help_paragraph = Paragraph::new(help_text)
+    let para = Paragraph::new(help_text)
         .block(Block::default().borders(Borders::ALL).title("Help"))
         .wrap(Wrap { trim: true });
-
-    frame.render_widget(help_paragraph, frame.size());
+    frame.render_widget(para, area);
 }
 
-fn draw_exiting(frame: &mut Frame, app: &mut App) {
-    //clear first
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3), // Header
-            Constraint::Min(1),    // Content
-            Constraint::Length(3), // Footer
-        ])
-        .split(frame.size());
-
-    // Header
-    let header = Paragraph::new("Test text in header").block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title_alignment(ratatui::layout::Alignment::Center)
-            .title("Akari Game"),
-    );
-
-    frame.render_widget(header, chunks[0]);
-
-    // Footer
-    let footer = Block::default()
-        .borders(Borders::ALL)
-        .title("Press q to quit");
-    frame.render_widget(footer, chunks[2]);
-
-    let middle = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Ratio(3, 10), // Header
-            Constraint::Min(0),
-        ])
-        .split(chunks[1]);
-
-    let archive_items: Vec<String> = (1..=750).map(|i| format!("Puzzle {:03}", i)).collect();
-    let archive_list = List::new(
-        archive_items
-            .iter()
-            .map(|s| ListItem::new(s.clone()))
-            .collect::<Vec<_>>(),
-    )
-    .block(Block::default().borders(Borders::ALL).title("Archive"))
-    .style(Style::default().fg(Color::White))
-    .highlight_style(
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )
-    .highlight_symbol(">> ")
-    .repeat_highlight_symbol(true)
-    .direction(ListDirection::TopToBottom);
-
-    frame.render_stateful_widget(archive_list, middle[0], &mut app.archive_list);
-
-    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
-
-    let menu = List::new(list)
-        .block(Block::default().borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true)
-        .direction(ListDirection::TopToBottom);
-
-    frame.render_stateful_widget(menu, middle[1], &mut app.menu_list);
-
+// 右側內容：離開確認
+fn draw_exiting_content(frame: &mut Frame, _app: &mut App, area: Rect) {
     let exiting_text = "Do you want to exit?\n\nPress Enter to exit\nPress Q to return to menu";
-    let exiting_paragraph = Paragraph::new(exiting_text)
+    let para = Paragraph::new(exiting_text)
         .block(Block::default().borders(Borders::ALL).title("Exiting"))
         .wrap(Wrap { trim: true });
+    frame.render_widget(para, area);
 }
