@@ -1,6 +1,6 @@
 use crate::game::{Direction, Game, PlayerOperation};
-use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
+use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::ListState;
 
 #[derive(Debug)]
