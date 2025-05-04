@@ -1,4 +1,4 @@
-![圖片](https://github.com/user-attachments/assets/f787b76d-0c74-4ede-90fb-362415d01e59)# akartui-rs
+# akartui-rs
 
 A Rust-based terminal user interface (TUI) implementation of the **Akari (Light Up)** logic puzzle.
 
@@ -7,7 +7,9 @@ This project uses [ratatui](https://github.com/ratatui-org/ratatui) for renderin
 ---
 
 ## Screenshots
-![Uploading 圖片.png…]()
+
+![圖片](https://github.com/user-attachments/assets/afafd3dc-1a03-46b7-90f8-e196922529bd)
+
 
 ---
 
