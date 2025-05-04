@@ -1,7 +1,9 @@
+use std::thread::spawn;
+
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    //text::Span,
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListDirection, ListItem, Paragraph, Wrap},
     Frame,
 };
@@ -120,14 +122,57 @@ fn draw_archive_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_stateful_widget(archive_list, area, &mut app.archive_list);
 }
 
-// 右側內容：主選單
 fn draw_menu_content(frame: &mut Frame, app: &mut App, area: Rect) {
-    let list = vec!["New Game", "Archive", "Settings", "Help", "Exit"];
-    let menu = List::new(list)
-        .block(Block::default().borders(Borders::ALL).title("Menu"))
-        .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .highlight_symbol(">>")
+    let menu_items = vec![
+        ("🟢 New Game", "Start a random puzzle", Color::Green),
+        ("A Archive", "Browse all puzzles", Color::Cyan),
+        (
+            "⚙️ Settings",
+            "Configure your experience",
+            Color::LightMagenta,
+        ),
+        ("❓ Help", "How to play Akari", Color::LightBlue),
+        ("🚪 Exit", "Leave the game", Color::Red),
+    ];
+
+    let items: Vec<ListItem> = menu_items
+        .iter()
+        .map(|(title, desc, color)| {
+            ListItem::new(vec![
+                Line::from(Span::styled(
+                    *title,
+                    Style::default().fg(*color).add_modifier(Modifier::BOLD),
+                )),
+                Line::from(Span::styled(
+                    *desc,
+                    Style::default()
+                        .fg(Color::Gray)
+                        .add_modifier(Modifier::ITALIC),
+                )),
+                Line::from(""), // 空行分隔
+            ])
+        })
+        .collect();
+
+    let menu = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled(
+                    "^v^ Akari Menu ^v^",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .title_alignment(ratatui::layout::Alignment::Center),
+        )
+        .highlight_style(
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD | Modifier::REVERSED),
+        )
+        .highlight_symbol("--> ")
         .repeat_highlight_symbol(true)
         .direction(ListDirection::TopToBottom);
 
@@ -167,21 +212,21 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
                 .split(*row_area);
 
             for (j, cell_area) in col_areas.iter().enumerate() {
-                let (symbol, style): (String, Style) = match display[i][j] {
+                let (title, style): (String, Style) = match display[i][j] {
                     CellDisplay::Wall => ("██".to_string(), Style::default().fg(Color::DarkGray)),
                     CellDisplay::Target(n) => (format!("{}", n), Style::default().fg(Color::White)),
                     CellDisplay::LightBulb => {
                         ("💡".to_string(), Style::default().fg(Color::LightYellow))
                     }
                     CellDisplay::Light(n) => match n {
-                        1 => ("1·".to_string(), Style::default().fg(Color::Yellow)),
-                        2 => ("2▒".to_string(), Style::default().fg(Color::Yellow)),
-                        3 => ("3▓".to_string(), Style::default().fg(Color::Yellow)),
-                        4 => ("4█".to_string(), Style::default().fg(Color::Yellow)),
-                        _ => (" 0".to_string(), Style::default().fg(Color::Gray)),
+                        1 => ("1".to_string(), Style::default().fg(Color::Yellow)),
+                        2 => ("2".to_string(), Style::default().fg(Color::Yellow)),
+                        3 => ("3".to_string(), Style::default().fg(Color::Yellow)),
+                        4 => ("4".to_string(), Style::default().fg(Color::Yellow)),
+                        _ => ("0".to_string(), Style::default().fg(Color::Gray)),
                     },
                     CellDisplay::Flag => ("P".to_string(), Style::default().fg(Color::Red)),
-                    CellDisplay::Dark => (" ".to_string(), Style::default().fg(Color::Black)),
+                    CellDisplay::Dark => ("".to_string(), Style::default().fg(Color::Black)),
                 };
 
                 let mut cell_style = style;
@@ -189,9 +234,14 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
                     cell_style = cell_style.bg(Color::Blue);
                 }
 
-                let para = Paragraph::new(symbol)
+                let para = Paragraph::new("") // 內容留空
                     .style(cell_style)
-                    .block(Block::default().borders(Borders::ALL));
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title(title)
+                            .title_alignment(ratatui::layout::Alignment::Center),
+                    );
                 frame.render_widget(para, *cell_area);
             }
         }

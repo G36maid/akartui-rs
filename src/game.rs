@@ -457,6 +457,7 @@ impl Game {
                                 let (ni, nj) = (ni as usize, nj as usize);
                                 if let Some(remain) = self.target_remain[ni][nj] {
                                     if remain <= 0 {
+                                        self.player_objects[row][col] = PlayerObject::Flag;
                                         return;
                                     }
                                 }
