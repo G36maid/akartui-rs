@@ -331,31 +331,28 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
         let rows = display.len();
         let cols = display[0].len();
 
-        let row_areas = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Ratio(1, rows as u32); rows])
-            .split(area);
+        let cell_width = area.width / cols as u16;
+        let cell_height = area.height / rows as u16;
 
-        for (i, row_area) in row_areas.iter().enumerate() {
-            let col_areas = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints(vec![Constraint::Ratio(1, cols as u32); cols])
-                .split(*row_area);
+        let board_width = cell_width * cols as u16;
+        let board_height = cell_height * rows as u16;
 
-            for (j, cell_area) in col_areas.iter().enumerate() {
+        let pad_x = (area.width - board_width) / 2;
+        let pad_y = (area.height - board_height) / 2;
+
+        for i in 0..rows {
+            for j in 0..cols {
+                let x = area.x + pad_x + j as u16 * cell_width;
+                let y = area.y + pad_y + i as u16 * cell_height;
+                let cell_area = Rect::new(x, y, cell_width, cell_height);
+
                 let (title, style): (String, Style) = match display[i][j] {
                     CellDisplay::Wall => ("██".to_string(), Style::default().fg(Color::DarkGray)),
                     CellDisplay::Target(n) => (format!("{}", n), Style::default().fg(Color::White)),
                     CellDisplay::LightBulb => {
                         ("💡".to_string(), Style::default().fg(Color::LightYellow))
                     }
-                    CellDisplay::Light(n) => match n {
-                        1 => ("1".to_string(), Style::default().fg(Color::Yellow)),
-                        2 => ("2".to_string(), Style::default().fg(Color::Yellow)),
-                        3 => ("3".to_string(), Style::default().fg(Color::Yellow)),
-                        4 => ("4".to_string(), Style::default().fg(Color::Yellow)),
-                        _ => ("0".to_string(), Style::default().fg(Color::Gray)),
-                    },
+                    CellDisplay::Light(n) => (format!("{}", n), Style::default().fg(Color::Yellow)),
                     CellDisplay::Flag => ("P".to_string(), Style::default().fg(Color::Red)),
                     CellDisplay::Dark => ("".to_string(), Style::default().fg(Color::Black)),
                 };
@@ -365,15 +362,13 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
                     cell_style = cell_style.bg(Color::Blue);
                 }
 
-                let para = Paragraph::new("") // 內容留空
-                    .style(cell_style)
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .title(title)
-                            .title_alignment(ratatui::layout::Alignment::Center),
-                    );
-                frame.render_widget(para, *cell_area);
+                let para = Paragraph::new("").style(cell_style).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(title)
+                        .title_alignment(ratatui::layout::Alignment::Center),
+                );
+                frame.render_widget(para, cell_area);
             }
         }
     }
