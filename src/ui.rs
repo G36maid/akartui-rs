@@ -348,7 +348,10 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
 
                 let (title, style): (String, Style) = match display[i][j] {
                     CellDisplay::Wall => ("██".to_string(), Style::default().fg(Color::DarkGray)),
-                    CellDisplay::Target(n) => (format!("{}", n), Style::default().fg(Color::White)),
+                    CellDisplay::Target(n) => {
+                        let color = if n == 0 { Color::Green } else { Color::White };
+                        (format!("{}", n), Style::default().fg(color))
+                    }
                     CellDisplay::LightBulb => {
                         ("💡".to_string(), Style::default().fg(Color::LightYellow))
                     }
