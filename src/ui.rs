@@ -10,6 +10,9 @@ use ratatui::{
 
 use crate::app::{App, CurrentScreen};
 use crate::game::CellDisplay;
+use serde_json::Value;
+use std::fs;
+use std::path::Path;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     // 上下三分割
@@ -48,7 +51,15 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
 // Header/info
 fn draw_info(frame: &mut Frame, app: &App, area: Rect) {
-    let info = match app.current_screen {
+    let info_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Ratio(2, 8),
+            Constraint::Ratio(4, 8),
+            Constraint::Ratio(2, 8),
+        ])
+        .split(area);
+    let left_info = match app.current_screen {
         CurrentScreen::Game => {
             if let Some(game) = &app.game {
                 if let Some(puzzle) = &game.puzzle {
@@ -79,9 +90,49 @@ fn draw_info(frame: &mut Frame, app: &App, area: Rect) {
         }
         _ => "Akari Game".to_string(),
     };
+    let left_para =
+        Paragraph::new(left_info).block(Block::default().borders(Borders::ALL).title("Info"));
+    frame.render_widget(left_para, info_chunks[0]);
 
-    let para = Paragraph::new(info).block(Block::default().borders(Borders::ALL).title("Info"));
-    frame.render_widget(para, area);
+    let ascii_lines = vec![
+        Line::from(Span::styled(
+            r#"/\  __ \   /\ \/ /    /\  __ \   /\  == \   /\__  _\ /\ \/\ \   /\ \"#,
+            Style::default().fg(Color::LightRed),
+        )),
+        Line::from(Span::styled(
+            r#" \ \  __ \  \ \  _"-.  \ \  __ \  \ \  __<   \/_/\ \/ \ \ \_\ \  \ \ \"#,
+            Style::default().fg(Color::LightYellow),
+        )),
+        Line::from(Span::styled(
+            r#"   \ \_\ \_\  \ \_\ \_\  \ \_\ \_\  \ \_\ \_\    \ \_\  \ \_____\  \ \_\"#,
+            Style::default().fg(Color::LightGreen),
+        )),
+        Line::from(Span::styled(
+            r#"    \/_/\/_/   \/_/\/_/   \/_/\/_/   \/_/ /_/     \/_/   \/_____/   \/_/"#,
+            Style::default().fg(Color::LightBlue),
+        )),
+    ];
+
+    let center_para = Paragraph::new(ascii_lines)
+        .block(Block::default().borders(Borders::TOP))
+        .alignment(ratatui::layout::Alignment::Center);
+    frame.render_widget(center_para, info_chunks[1]);
+
+    // 右
+
+    let right_info = format!(
+        "Time: {}\nStatus: {}",
+        app.timer_string(),
+        match app.current_screen {
+            CurrentScreen::Game => "Playing",
+            CurrentScreen::Archive => "Browsing",
+            CurrentScreen::Win => "Finished",
+            _ => "",
+        }
+    );
+    let right_para =
+        Paragraph::new(right_info).block(Block::default().borders(Borders::ALL).title("Status"));
+    frame.render_widget(right_para, info_chunks[2]);
 }
 
 // Footer/helper
@@ -124,15 +175,15 @@ fn draw_archive_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
 
 fn draw_menu_content(frame: &mut Frame, app: &mut App, area: Rect) {
     let menu_items = vec![
-        ("🟢 New Game", "Start a random puzzle", Color::Green),
-        ("A Archive", "Browse all puzzles", Color::Cyan),
+        ("🟢 <G> New Game ", "Start a random puzzle", Color::Green),
+        ("A <A> Archive", "Browse all puzzles", Color::Cyan),
         (
-            "⚙️ Settings",
+            "⚙️ <S> Settings",
             "Configure your experience",
             Color::LightMagenta,
         ),
-        ("❓ Help", "How to play Akari", Color::LightBlue),
-        ("🚪 Exit", "Leave the game", Color::Red),
+        ("❓ <H> Help", "How to play Akari", Color::LightBlue),
+        ("🚪 <E> Exit", "Leave the game", Color::Red),
     ];
 
     let items: Vec<ListItem> = menu_items
@@ -179,17 +230,97 @@ fn draw_menu_content(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_stateful_widget(menu, area, &mut app.menu_list);
 }
 
-// 右側內容：Archive 預覽
 fn draw_archive_content(frame: &mut Frame, app: &mut App, area: Rect) {
-    let text = if let Some(selected) = app.archive_list.selected() {
-        format!(
-            "Puzzle {:03} Preview/Info\n(You can show metadata or a mini board here)",
-            selected + 1
-        )
+    let mut lines = vec![];
+
+    if let Some(selected) = app.archive_list.selected() {
+        let puzzle_id = selected + 1;
+        lines.push(Line::from(vec![Span::styled(
+            format!("📄 Puzzle {:03}", puzzle_id),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )]));
+        lines.push(Line::from(""));
+
+        // 顯示 metadata
+        if let Some(game) = &app.game {
+            if let Some(puzzle) = &game.puzzle {
+                let meta = &puzzle.metadata;
+                lines.push(Line::from(vec![
+                    Span::styled("Type: ", Style::default().fg(Color::Cyan)),
+                    Span::raw(&meta.puzzle_type),
+                ]));
+                lines.push(Line::from(vec![
+                    Span::styled("Author: ", Style::default().fg(Color::Cyan)),
+                    Span::raw(&meta.author),
+                ]));
+                lines.push(Line::from(vec![
+                    Span::styled("Size: ", Style::default().fg(Color::Cyan)),
+                    Span::raw(format!("{} x {}", meta.size.rows, meta.size.cols)),
+                ]));
+                lines.push(Line::from(vec![
+                    Span::styled("Source: ", Style::default().fg(Color::Cyan)),
+                    Span::raw(&meta.source),
+                ]));
+                lines.push(Line::from(vec![
+                    Span::styled("Info: ", Style::default().fg(Color::Cyan)),
+                    Span::raw(&meta.info),
+                ]));
+
+                lines.push(Line::from("")); // 空行
+                lines.push(Line::from(Span::styled(
+                    "🧩 Mini Board Preview",
+                    Style::default()
+                        .fg(Color::LightGreen)
+                        .add_modifier(Modifier::BOLD),
+                )));
+                // 印出棋盤
+                for row in &puzzle.problem {
+                    let row_str: String = row
+                        .iter()
+                        .map(|cell| match cell.as_str() {
+                            "x" => "█", // 牆
+                            "0" => "0",
+                            "1" => "1",
+                            "2" => "2",
+                            "3" => "3",
+                            "4" => "4",
+                            _ => "·", // 空格
+                        })
+                        .collect();
+                    lines.push(Line::from(row_str));
+                }
+            } else {
+                lines.push(Line::from(Span::styled(
+                    "No metadata loaded.",
+                    Style::default().fg(Color::Red),
+                )));
+            }
+        } else {
+            lines.push(Line::from(Span::styled(
+                "No puzzle loaded.",
+                Style::default().fg(Color::Red),
+            )));
+        }
     } else {
-        "Please select a puzzle".to_string()
-    };
-    let para = Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Preview"));
+        lines.push(Line::from(Span::styled(
+            "Please select a puzzle from the left.",
+            Style::default().fg(Color::Gray),
+        )));
+    }
+
+    let para = Paragraph::new(lines)
+        .block(
+            Block::default().borders(Borders::ALL).title(Span::styled(
+                "Preview",
+                Style::default()
+                    .fg(Color::LightCyan)
+                    .add_modifier(Modifier::BOLD),
+            )),
+        )
+        .wrap(ratatui::widgets::Wrap { trim: true });
+
     frame.render_widget(para, area);
 }
 
@@ -255,10 +386,71 @@ fn draw_settings_content(frame: &mut Frame, _app: &mut App, area: Rect) {
 }
 
 fn draw_help_content(frame: &mut Frame, _app: &mut App, area: Rect) {
-    let help_text = "Help for Akari Game\n\nControls:\nG - Start New Game\nA - Open Archive\nS - Open Settings\nH - Show This Help\nE - Exit Game\nQ - Quit Current Screen";
-    let para = Paragraph::new(help_text)
-        .block(Block::default().borders(Borders::ALL).title("Help"))
+    let lines = vec![
+        Line::from(Span::styled(
+            "🕯️  Akari (Light Up) Game Rules",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(""),
+        Line::from("• The board consists of white and black cells."),
+        Line::from("• Place light bulbs in white cells so that every white cell is lit."),
+        Line::from(
+            "• Each bulb illuminates its entire row and column until blocked by a black cell.",
+        ),
+        Line::from(
+            "• No two bulbs may shine on each other (no two bulbs in the same line of sight).",
+        ),
+        Line::from(
+            "• A black cell may have a number (0-4), indicating how many bulbs must be placed",
+        ),
+        Line::from("  adjacent to its four sides (up, down, left, right)."),
+        Line::from("• A black cell with 0 must not have any bulbs adjacent to it."),
+        Line::from(
+            "• An unnumbered black cell may have any number of bulbs adjacent to it, or none.",
+        ),
+        Line::from(
+            "• Bulbs diagonally adjacent to a numbered cell do not count toward its requirement.",
+        ),
+        Line::from(""),
+        Line::from(Span::styled(
+            "🎮 Controls",
+            Style::default()
+                .fg(Color::LightCyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(""),
+        Line::from("G - Start a random new game"),
+        Line::from("A - Open archive"),
+        Line::from("S - Settings"),
+        Line::from("H - Show this help"),
+        Line::from("E - Exit game"),
+        Line::from("Q - Back/quit current screen"),
+        Line::from(""),
+        Line::from("Arrow keys - Move cursor"),
+        Line::from("Space - Place/remove lightbulb"),
+        Line::from("F - Place/remove flag"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "Have fun and good luck!",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::ITALIC),
+        )),
+    ];
+
+    let para = Paragraph::new(lines)
+        .block(
+            Block::default().borders(Borders::ALL).title(Span::styled(
+                "Help",
+                Style::default()
+                    .fg(Color::LightYellow)
+                    .add_modifier(Modifier::BOLD),
+            )),
+        )
         .wrap(Wrap { trim: true });
+
     frame.render_widget(para, area);
 }
 

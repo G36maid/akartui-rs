@@ -2,8 +2,9 @@ use crate::game::{Direction, Game, PlayerOperation};
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::Rng;
 use ratatui::widgets::ListState;
+use std::time::{Duration, Instant};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CurrentScreen {
     Menu,
     Game,
@@ -20,6 +21,8 @@ pub struct App {
     pub menu_list: ListState,
     pub archive_list: ListState,
     pub game: Option<Game>,
+    pub timer_start: Option<Instant>,
+    pub timer_elapsed: Duration,
     exit: bool,
 }
 
@@ -30,12 +33,28 @@ impl App {
             menu_list: ListState::default(),
             archive_list: ListState::default(),
             game: None,
+            timer_start: None,
+            timer_elapsed: Duration::ZERO,
             exit: false,
         }
     }
 
     pub fn should_quit(&self) -> bool {
         self.exit
+    }
+
+    pub fn timer_string(&self) -> String {
+        let elapsed = if self.current_screen == CurrentScreen::Game {
+            if let Some(start) = self.timer_start {
+                start.elapsed()
+            } else {
+                self.timer_elapsed
+            }
+        } else {
+            self.timer_elapsed
+        };
+        let secs = elapsed.as_secs();
+        format!("{:02}:{:02}", secs / 60, secs % 60)
     }
 
     pub fn handle_event(&mut self, key: KeyEvent) {
@@ -97,6 +116,8 @@ impl App {
         game.start();
         self.game = Some(game);
         self.current_screen = CurrentScreen::Game;
+        self.timer_start = Some(Instant::now());
+        self.timer_elapsed = Duration::ZERO;
         Ok(())
     }
 
@@ -104,6 +125,10 @@ impl App {
         if let Some(game) = &self.game {
             if game.state == crate::game::GameState::GameOver {
                 self.current_screen = CurrentScreen::Win;
+                // 記錄最終時間
+                if let Some(start) = self.timer_start.take() {
+                    self.timer_elapsed = start.elapsed();
+                }
             }
         }
     }
