@@ -78,8 +78,8 @@ pub enum CellDisplay {
 pub enum PlayerOperation {
     AddLightbulb,
     AddFlag,
-    RemoveLightbulb,
-    RemoveFlag,
+    // RemoveLightbulb,
+    // RemoveFlag,
 }
 
 pub enum Direction {
@@ -93,11 +93,6 @@ pub enum Direction {
 pub struct UndoSnapshot {
     pub player_objects: Vec<Vec<PlayerObject>>,
     pub cursor_position: (usize, usize),
-}
-
-pub struct PlayerOperationHistory {
-    operations: Vec<PlayerOperation>,
-    position: Vec<(usize, usize)>,
 }
 
 pub struct Game {
@@ -513,12 +508,12 @@ impl Game {
                 }
                 _ => {}
             },
-            PlayerOperation::RemoveLightbulb => {
-                self.player_objects[row][col] = PlayerObject::Empty;
-            }
-            PlayerOperation::RemoveFlag => {
-                self.player_objects[row][col] = PlayerObject::Empty;
-            }
+            // PlayerOperation::RemoveLightbulb => {
+            //     self.player_objects[row][col] = PlayerObject::Empty;
+            // }
+            // PlayerOperation::RemoveFlag => {
+            //     self.player_objects[row][col] = PlayerObject::Empty;
+            // }
         }
     }
 }

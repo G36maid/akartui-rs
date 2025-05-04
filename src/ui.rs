@@ -1,4 +1,4 @@
-use std::thread::spawn;
+//use std::thread::spawn;
 
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -10,9 +10,9 @@ use ratatui::{
 
 use crate::app::{App, CurrentScreen};
 use crate::game::CellDisplay;
-use serde_json::Value;
-use std::fs;
-use std::path::Path;
+// use serde_json::Value;
+// use std::fs;
+// use std::path::Path;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     // 上下三分割
@@ -141,7 +141,9 @@ fn draw_helper(frame: &mut Frame, app: &App, area: Rect) {
         CurrentScreen::Game => {
             "<Arrow Keys>: Move  <Space>: Lightbulb  <F>: Flag  <U>: Undo <Q>: Back"
         }
-        CurrentScreen::Archive => "<Arrow Keys>: Move  <Enter>: Start Game  <Q>: Back",
+        CurrentScreen::Archive => {
+            "<Arrow Keys>: Move  <Enter>: Start Game </[int]> filter puzzle  <Q>: Back"
+        }
         CurrentScreen::Menu => "<Arrow Keys>: Menu  <Enter>: Select  <Q>: Quit",
         CurrentScreen::Settings => "Settings Screen  <Q>: Back",
         CurrentScreen::Help => "<Q>: Back",
@@ -154,25 +156,55 @@ fn draw_helper(frame: &mut Frame, app: &App, area: Rect) {
 
 // 左側 archive
 fn draw_archive_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
-    let archive_items: Vec<String> = (1..=750).map(|i| format!("Puzzle {:03}", i)).collect();
-    let archive_list = List::new(
-        archive_items
-            .iter()
-            .map(|s| ListItem::new(s.clone()))
-            .collect::<Vec<_>>(),
-    )
-    .block(Block::default().borders(Borders::ALL).title("Archive"))
-    .style(Style::default().fg(Color::White))
-    .highlight_style(
-        Style::default()
-            .fg(Color::Yellow)
-            .add_modifier(Modifier::BOLD),
-    )
-    .highlight_symbol(">> ")
-    .repeat_highlight_symbol(true)
-    .direction(ListDirection::TopToBottom);
+    // 分割 sidebar：上面是 list，下面是搜尋欄
+    let sidebar_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(3),    // list 至少 3 行
+            Constraint::Length(3), // 搜尋欄固定 3 行
+        ])
+        .split(area);
 
-    frame.render_stateful_widget(archive_list, area, &mut app.archive_list);
+    // 1. 畫 archive list
+    let archive_items = app.filtered_archive_items();
+    let list_items: Vec<ListItem> = archive_items
+        .iter()
+        .map(|(_, s)| ListItem::new(s.clone()))
+        .collect();
+
+    let archive_list = List::new(list_items)
+        .block(Block::default().borders(Borders::ALL).title("Archive"))
+        .style(Style::default().fg(Color::White))
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ")
+        .repeat_highlight_symbol(true)
+        .direction(ListDirection::TopToBottom);
+
+    frame.render_stateful_widget(archive_list, sidebar_chunks[0], &mut app.archive_list);
+
+    // 2. 畫搜尋欄
+    let input = if app.archive_input_mode {
+        format!("Filter: {}", app.archive_input)
+    } else if let Some(ref filter) = app.archive_filter {
+        format!("Current filter: /{}", filter)
+    } else {
+        "Press / to filter by puzzle number".to_string()
+    };
+
+    let para = Paragraph::new(input)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Search")
+                .title_alignment(Alignment::Center),
+        )
+        .alignment(Alignment::Left);
+
+    frame.render_widget(para, sidebar_chunks[1]);
 }
 
 fn draw_menu_content(frame: &mut Frame, app: &mut App, area: Rect) {

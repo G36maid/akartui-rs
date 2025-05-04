@@ -23,6 +23,9 @@ pub struct App {
     pub game: Option<Game>,
     pub timer_start: Option<Instant>,
     pub timer_elapsed: Duration,
+    pub archive_filter: Option<String>,
+    pub archive_input_mode: bool,
+    pub archive_input: String,
     exit: bool,
 }
 
@@ -35,6 +38,9 @@ impl App {
             game: None,
             timer_start: None,
             timer_elapsed: Duration::ZERO,
+            archive_filter: None,
+            archive_input_mode: false,
+            archive_input: String::new(),
             exit: false,
         }
     }
@@ -190,7 +196,38 @@ impl App {
     }
 
     fn handle_archive_events(&mut self, key: KeyEvent) {
+        if self.archive_input_mode {
+            match key.code {
+                KeyCode::Esc => {
+                    self.archive_input_mode = false;
+                    self.archive_input.clear();
+                }
+                KeyCode::Enter => {
+                    if self.archive_input.starts_with('/') {
+                        let filter = self.archive_input[1..].to_string();
+                        self.archive_filter = Some(filter);
+                    } else {
+                        self.archive_filter = None;
+                    }
+                    self.archive_input_mode = false;
+                    self.archive_input.clear();
+                }
+                KeyCode::Backspace => {
+                    self.archive_input.pop();
+                }
+                KeyCode::Char(c) => {
+                    self.archive_input.push(c);
+                }
+                _ => {}
+            }
+            return;
+        }
+
         match key.code {
+            KeyCode::Char('/') => {
+                self.archive_input_mode = true;
+                self.archive_input = "/".to_string();
+            }
             KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
             KeyCode::Up => {
                 self.archive_list.select_previous();
@@ -200,13 +237,31 @@ impl App {
             }
             KeyCode::Enter => {
                 if let Some(selected) = self.archive_list.selected() {
-                    let puzzle_id = (selected + 1) as u32;
-                    if let Err(e) = self.start_game(puzzle_id) {
-                        eprintln!("Failed to start game: {}", e);
+                    let filtered = self.filtered_archive_items();
+                    if let Some((puzzle_id, _)) = filtered.get(selected) {
+                        if let Err(e) = self.start_game(*puzzle_id as u32) {
+                            eprintln!("Failed to start game: {}", e);
+                        }
                     }
                 }
             }
             _ => {}
+        }
+    }
+
+    pub fn filtered_archive_items(&self) -> Vec<(usize, String)> {
+        let all: Vec<(usize, String)> =
+            (1..=750).map(|i| (i, format!("Puzzle {:03}", i))).collect();
+        if let Some(ref filter) = self.archive_filter {
+            if filter.is_empty() {
+                all
+            } else {
+                all.into_iter()
+                    .filter(|(i, _)| format!("{:03}", i).starts_with(filter))
+                    .collect()
+            }
+        } else {
+            all
         }
     }
 
