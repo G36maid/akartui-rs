@@ -1,6 +1,7 @@
 use std::time::Instant;
 use std::{io, time::Duration as StdDuration};
 
+#[path = "common/gruvbox.rs"]
 mod gruvbox;
 
 use crate::gruvbox::Gruvbox;
