@@ -8,6 +8,11 @@ use ratatui::{
 
 use crate::app::{App, CurrentScreen};
 use crate::game::CellDisplay;
+use tachyonfx::Interpolation;
+use tachyonfx::{Duration, Effect};
+
+use tachyonfx::EffectRenderer;
+use tachyonfx::Shader;
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     // 上下三分割
@@ -194,6 +199,14 @@ fn draw_game_content(frame: &mut Frame, app: &mut App, area: Rect) {
                     .block(Block::default().borders(Borders::ALL));
                 frame.render_widget(para, *cell_area);
             }
+        }
+    }
+
+    if let Some(effect) = &mut app.effect {
+        let elapsed = app.last_frame.elapsed();
+        frame.render_effect(effect, area, elapsed.into());
+        if !effect.running() {
+            app.effect = None;
         }
     }
 }

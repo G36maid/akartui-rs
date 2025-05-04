@@ -1,7 +1,10 @@
 use crate::game::{Direction, Game, PlayerOperation};
 use rand::Rng;
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
+use ratatui::style::Color;
 use ratatui::widgets::ListState;
+use tachyonfx::Interpolation;
+use tachyonfx::{Duration, Effect};
 
 #[derive(Debug)]
 pub enum CurrentScreen {
@@ -21,6 +24,16 @@ pub struct App {
     pub archive_list: ListState,
     pub game: Option<Game>,
     exit: bool,
+    //effect
+    pub effect: Option<Effect>,
+    pub last_frame: std::time::Instant,
+    pub effect_pending: Option<EffectType>, // 用來記錄要套用的動畫類型
+}
+
+pub enum EffectType {
+    FadeIn,
+    FadeOut,
+    // 你可以加更多動畫類型
 }
 
 impl App {
@@ -31,6 +44,9 @@ impl App {
             archive_list: ListState::default(),
             game: None,
             exit: false,
+            effect: None,
+            last_frame: std::time::Instant::now(),
+            effect_pending: None,
         }
     }
 
@@ -102,14 +118,20 @@ impl App {
 
     fn check_gameover(&mut self) {
         if let Some(game) = &self.game {
-            if game.state == crate::game::GameState::GameOver {
+            if game.state == crate::game::GameState::GameOver && self.effect.is_none() {
                 self.current_screen = CurrentScreen::Win;
+                self.effect = Some(tachyonfx::fx::fade_from_fg(
+                    Color::LightRed,
+                    (1000, Interpolation::CircOut),
+                ));
+                self.last_frame = std::time::Instant::now();
             }
         }
     }
 
     // Add other event handlers as needed
     fn handle_game_events(&mut self, key: KeyEvent) {
+        let mut updated = false;
         match key.code {
             KeyCode::Char('q') => {
                 if let Some(game) = &mut self.game {
@@ -121,40 +143,55 @@ impl App {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Up);
                     game.update();
+                    updated = true;
                 }
             }
             KeyCode::Down => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Down);
                     game.update();
+                    updated = true;
                 }
             }
             KeyCode::Left => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Left);
                     game.update();
+                    updated = true;
                 }
             }
             KeyCode::Right => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Right);
                     game.update();
+                    updated = true;
                 }
             }
             KeyCode::Char(' ') => {
                 if let Some(game) = &mut self.game {
                     game.player_operation(PlayerOperation::AddLightbulb);
                     game.update();
+                    updated = true;
                 }
             }
             KeyCode::Char('f') => {
                 if let Some(game) = &mut self.game {
                     game.player_operation(PlayerOperation::AddFlag);
                     game.update();
+                    updated = true;
                 }
             }
             _ => {}
         }
+        if updated {
+            // 這裡你可以根據需求選擇動畫類型
+            self.effect = Some(tachyonfx::fx::fade_from_fg(
+                ratatui::style::Color::Green,
+                (300, tachyonfx::Interpolation::CircOut),
+            ));
+            self.last_frame = std::time::Instant::now();
+        }
+
         self.check_gameover();
     }
 
