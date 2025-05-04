@@ -138,7 +138,9 @@ fn draw_info(frame: &mut Frame, app: &App, area: Rect) {
 // Footer/helper
 fn draw_helper(frame: &mut Frame, app: &App, area: Rect) {
     let text = match app.current_screen {
-        CurrentScreen::Game => "<Arrow Keys>: Move  <Space>: Lightbulb  <F>: Flag  <Q>: Back",
+        CurrentScreen::Game => {
+            "<Arrow Keys>: Move  <Space>: Lightbulb  <F>: Flag  <U>: Undo <Q>: Back"
+        }
         CurrentScreen::Archive => "<Arrow Keys>: Move  <Enter>: Start Game  <Q>: Back",
         CurrentScreen::Menu => "<Arrow Keys>: Menu  <Enter>: Select  <Q>: Quit",
         CurrentScreen::Settings => "Settings Screen  <Q>: Back",
@@ -382,7 +384,6 @@ fn draw_settings_content(frame: &mut Frame, _app: &mut App, area: Rect) {
         .block(Block::default().borders(Borders::ALL).title("Settings"));
     frame.render_widget(para, area);
 }
-
 fn draw_help_content(frame: &mut Frame, _app: &mut App, area: Rect) {
     let lines = vec![
         Line::from(Span::styled(
@@ -392,46 +393,57 @@ fn draw_help_content(frame: &mut Frame, _app: &mut App, area: Rect) {
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
-        Line::from("• The board consists of white and black cells."),
-        Line::from("• Place light bulbs in white cells so that every white cell is lit."),
-        Line::from(
-            "• Each bulb illuminates its entire row and column until blocked by a black cell.",
-        ),
-        Line::from(
-            "• No two bulbs may shine on each other (no two bulbs in the same line of sight).",
-        ),
-        Line::from(
-            "• A black cell may have a number (0-4), indicating how many bulbs must be placed",
-        ),
-        Line::from("  adjacent to its four sides (up, down, left, right)."),
-        Line::from("• A black cell with 0 must not have any bulbs adjacent to it."),
-        Line::from(
-            "• An unnumbered black cell may have any number of bulbs adjacent to it, or none.",
-        ),
-        Line::from(
-            "• Bulbs diagonally adjacent to a numbered cell do not count toward its requirement.",
-        ),
-        Line::from(""),
+                Line::from("1. Place bulbs in empty (white) cells to light up the whole board."),
+                Line::from("2. Each bulb lights up its row and column until blocked by a black cell."),
+                Line::from("3. No two bulbs can shine on each other."),
+                Line::from("4. Black cells with a number (0-4) must have exactly that many bulbs next to them (up, down, left, right)."),
+                Line::from("5. Black cells without a number can have any number of bulbs next to them."),
+                Line::from(""),
         Line::from(Span::styled(
-            "🎮 Controls",
+            "Example: Puzzle 001",
             Style::default()
                 .fg(Color::LightCyan)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
-        Line::from("G - Start a random new game"),
-        Line::from("A - Open archive"),
-        Line::from("S - Settings"),
-        Line::from("H - Show this help"),
-        Line::from("E - Exit game"),
-        Line::from("Q - Back/quit current screen"),
+        Line::from(Span::styled(
+            "Problem:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Line::from(" 1 - - - - - - - - 1"),
+        Line::from(" - - - x - - - - - -"),
+        Line::from(" - x - - - 2 - - x -"),
+        Line::from(" - - - - - - - 1 - -"),
+        Line::from(" - - - 4 - - - - - -"),
+        Line::from(" - - - - - - 2 - - -"),
+        Line::from(" - - 2 - - - - - - -"),
+        Line::from(" - x - - 2 - - - x -"),
+        Line::from(" - - - - - - 0 - - -"),
+        Line::from(" 1 - - - - - - - - 1"),
         Line::from(""),
-        Line::from("Arrow keys - Move cursor"),
-        Line::from("Space - Place/remove lightbulb"),
-        Line::from("F - Place/remove flag"),
+        Line::from("1,2,4,0: clue black cells (numbered walls)"),
+        Line::from("x: black cell (wall) with no clue"),
+        Line::from("-: empty cell (can place bulbs)"),
         Line::from(""),
         Line::from(Span::styled(
-            "Have fun and good luck!",
+            "Solution:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Line::from(" 1 - - - - - - - o 1"),
+        Line::from(" o - - x - o - - - -"),
+        Line::from(" - x - - - 2 o - x -"),
+        Line::from(" - - - o - - - 1 o -"),
+        Line::from(" - - o 4 o - - - - -"),
+        Line::from(" - - - o - - 2 o - -"),
+        Line::from(" - o 2 - - - o - - -"),
+        Line::from(" - x o - 2 o - - x -"),
+        Line::from(" - - - - o - 0 - - o"),
+        Line::from(" 1 o - - - - - - - 1"),
+        Line::from(""),
+        Line::from("o: placed lightbulb"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "This example demonstrates all the main rules of Akari (Light Up).",
             Style::default()
                 .fg(Color::Green)
                 .add_modifier(Modifier::ITALIC),
@@ -441,7 +453,7 @@ fn draw_help_content(frame: &mut Frame, _app: &mut App, area: Rect) {
     let para = Paragraph::new(lines)
         .block(
             Block::default().borders(Borders::ALL).title(Span::styled(
-                "Help",
+                "Game Rules",
                 Style::default()
                     .fg(Color::LightYellow)
                     .add_modifier(Modifier::BOLD),

@@ -142,6 +142,12 @@ impl App {
                 }
                 self.current_screen = CurrentScreen::Menu;
             }
+            KeyCode::Char('u') => {
+                //undo
+                if let Some(game) = &mut self.game {
+                    game.undo();
+                }
+            }
             KeyCode::Up => {
                 if let Some(game) = &mut self.game {
                     game.player_move_cursor(Direction::Up);

@@ -78,6 +78,8 @@ pub enum CellDisplay {
 pub enum PlayerOperation {
     AddLightbulb,
     AddFlag,
+    RemoveLightbulb,
+    RemoveFlag,
 }
 
 pub enum Direction {
@@ -85,6 +87,17 @@ pub enum Direction {
     Down,
     Left,
     Right,
+}
+
+#[derive(Clone)]
+pub struct UndoSnapshot {
+    pub player_objects: Vec<Vec<PlayerObject>>,
+    pub cursor_position: (usize, usize),
+}
+
+pub struct PlayerOperationHistory {
+    operations: Vec<PlayerOperation>,
+    position: Vec<(usize, usize)>,
 }
 
 pub struct Game {
@@ -96,7 +109,7 @@ pub struct Game {
     //pub display: Vec<Vec<CellDisplay>>,
     pub target_remain: Vec<Vec<Option<i8>>>,
     pub cursor_position: (usize, usize),
-    //pub player_position_state: Vec<ListState>,
+    pub undo_stack: Vec<UndoSnapshot>,
 }
 
 impl Game {
@@ -111,6 +124,7 @@ impl Game {
             target_remain: Vec::new(),
             cursor_position: (0, 0),
             //player_position_state: Vec::new(),
+            undo_stack: Vec::new(),
         }
     }
 
@@ -145,6 +159,8 @@ impl Game {
 
         // Initialize board
         self.init_board();
+
+        self.undo_stack.clear();
 
         Ok(())
     }
@@ -429,10 +445,22 @@ impl Game {
             }
         }
     }
-
+    pub fn undo(&mut self) {
+        if let Some(snapshot) = self.undo_stack.pop() {
+            self.player_objects = snapshot.player_objects;
+            self.cursor_position = snapshot.cursor_position;
+            self.update(); // 重新計算 light_state、target_remain 等
+        }
+    }
+    pub fn push_undo(&mut self) {
+        self.undo_stack.push(UndoSnapshot {
+            player_objects: self.player_objects.clone(),
+            cursor_position: self.cursor_position,
+        });
+    }
     pub fn player_operation(&mut self, operation: PlayerOperation) {
+        self.push_undo();
         let (row, col) = self.cursor_position;
-
         match operation {
             PlayerOperation::AddLightbulb => {
                 match self.player_objects[row][col] {
@@ -485,6 +513,12 @@ impl Game {
                 }
                 _ => {}
             },
+            PlayerOperation::RemoveLightbulb => {
+                self.player_objects[row][col] = PlayerObject::Empty;
+            }
+            PlayerOperation::RemoveFlag => {
+                self.player_objects[row][col] = PlayerObject::Empty;
+            }
         }
     }
 }

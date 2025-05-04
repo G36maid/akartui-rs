@@ -24,7 +24,6 @@ This project uses [ratatui](https://github.com/ratatui-org/ratatui) for renderin
 - Random puzzle selection and archive browsing
 
 ---
-
 ## Getting Started
 
 ### Prerequisites
@@ -54,6 +53,54 @@ cargo run
 | G       | Start a new random puzzle (in menu) |
 
 ---
+## Game Rules
+To illustrate the rules, here is an example using puzzle 001:
+
+**Puzzle 001 (problem):**
+
+```
+1 - - - - - - - - 1
+- - - x - - - - - -
+- x - - - 2 - - x -
+- - - - - - - 1 - -
+- - - 4 - - - - - -
+- - - - - - 2 - - -
+- - 2 - - - - - - -
+- x - - 2 - - - x -
+- - - - - - 0 - - -
+1 - - - - - - - - 1
+```
+
+- `1`, `2`, `4`, `0` are clue black cells (numbered walls).
+- `x` is a black cell (wall) with no clue.
+- `-` is an empty cell where bulbs can be placed.
+
+**Solution:**
+
+```
+1 - - - - - - - o 1
+o - - x - o - - - -
+- x - - - 2 o - x -
+- - - o - - - 1 o -
+- - o 4 o - - - - -
+- - - o - - 2 o - -
+- o 2 - - - o - - -
+- x o - 2 o - - x -
+- - - - o - 0 - - o
+1 o - - - - - - - 1
+```
+
+- `o` indicates a placed lightbulb.
+
+**How the rules apply:**
+- Every empty cell is lit by at least one bulb.
+- No two bulbs shine on each other in the same row or column.
+- Numbered black cells have exactly that many bulbs adjacent (orthogonally).
+- Black cells with `0` have no bulbs adjacent.
+- Unnumbered black cells (`x`) can have any number of bulbs adjacent.
+
+This example demonstrates all the main rules of Akari (Light Up).
+
 
 ## App Layout
 
