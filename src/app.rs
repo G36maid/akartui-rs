@@ -230,6 +230,9 @@ impl App {
             }
             KeyCode::Char('q') => self.current_screen = CurrentScreen::Menu,
             KeyCode::Up => {
+                if self.archive_list.selected().is_none() {
+                    self.archive_list.select(Some(0));
+                }
                 self.archive_list.select_previous();
             }
             KeyCode::Down => {
